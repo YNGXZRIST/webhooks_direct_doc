@@ -76,8 +76,14 @@ POST /webHooks/validateYandexDirectAccount
 
 #### Пример запроса
 
-```bash
-curl -X POST "https://your-domain.com/webHooks/validateYandexDirectAccount?account=myaccount&client=myclient"
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/validateYandexDirectAccount',
+    params={'account': 'myaccount', 'client': 'myclient'}
+)
+print(response.json())
 ```
 
 #### Пример успешного ответа
@@ -117,8 +123,14 @@ GET /webHooks/getCampaignsList
 
 #### Пример запроса
 
-```bash
-curl -X GET "https://your-domain.com/webHooks/getCampaignsList?account=myaccount&client=myclient"
+```python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/webHooks/getCampaignsList',
+    params={'account': 'myaccount', 'client': 'myclient'}
+)
+print(response.json())
 ```
 
 #### Пример успешного ответа
@@ -200,16 +212,21 @@ POST /webHooks/getCampaignsStatistics
 
 #### Пример запроса
 
-```bash
-curl -X POST "https://your-domain.com/webHooks/getCampaignsStatistics?account=myaccount&client=myclient" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "campaign_ids": [16433668, 16433669],
-    "fields": ["expense", "clicks", "impressions", "ctr", "cpa"],
-    "from": "2024-01-01",
-    "to": "2024-01-31",
-    "online_goals": [12345, 67890]
-  }'
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/getCampaignsStatistics',
+    params={'account': 'myaccount', 'client': 'myclient'},
+    json={
+        'campaign_ids': [16433668, 16433669],
+        'fields': ['expense', 'clicks', 'impressions', 'ctr', 'cpa'],
+        'from': '2024-01-01',
+        'to': '2024-01-31',
+        'online_goals': [12345, 67890]
+    }
+)
+print(response.json())
 ```
 
 #### Пример успешного ответа
@@ -341,184 +358,219 @@ CTR = (Клики / Показы) × 100%
 
 ### Пример 1: Проверка аккаунта и получение списка кампаний
 
-```javascript
-async function getCampaigns() {
-    const account = 'myaccount';
-    const client = 'myclient';
-    const baseUrl = 'https://your-domain.com/webHooks';
+```python
+import requests
 
-    // Шаг 1: Валидация аккаунта
-    const validateResponse = await fetch(
-        `${baseUrl}/validateYandexDirectAccount?account=${account}&client=${client}`,
-        { method: 'POST' }
-    );
-    const validateData = await validateResponse.json();
+def get_campaigns():
+    account = 'myaccount'
+    client = 'myclient'
+    base_url = 'https://your-domain.com/webHooks'
 
-    if (!validateData.valid) {
-        console.error('Аккаунт невалидный:', validateData.error);
-        return;
-    }
+    # Шаг 1: Валидация аккаунта
+    validate_response = requests.post(
+        f'{base_url}/validateYandexDirectAccount',
+        params={'account': account, 'client': client}
+    )
+    validate_data = validate_response.json()
 
-    // Шаг 2: Получение списка кампаний
-    const campaignsResponse = await fetch(
-        `${baseUrl}/getCampaignsList?account=${account}&client=${client}`
-    );
-    const campaignsData = await campaignsResponse.json();
+    if not validate_data.get('valid'):
+        print(f"Аккаунт невалидный: {validate_data.get('error')}")
+        return None
 
-    console.log('Кампании:', campaignsData.campaigns);
-    return campaignsData.campaigns;
-}
+    # Шаг 2: Получение списка кампаний
+    campaigns_response = requests.get(
+        f'{base_url}/getCampaignsList',
+        params={'account': account, 'client': client}
+    )
+    campaigns_data = campaigns_response.json()
+
+    print('Кампании:', campaigns_data['campaigns'])
+    return campaigns_data['campaigns']
+
+# Использование
+campaigns = get_campaigns()
 ```
 
 ### Пример 2: Получение статистики по нескольким кампаниям
 
-```javascript
-async function getCampaignStatistics(campaignIds) {
-    const account = 'myaccount';
-    const client = 'myclient';
+```python
+import requests
 
-    const response = await fetch(
-        `https://your-domain.com/webHooks/getCampaignsStatistics?account=${account}&client=${client}`,
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                campaign_ids: campaignIds,
-                fields: ['expense', 'clicks', 'impressions', 'ctr', 'cpa'],
-                from: '2024-01-01',
-                to: '2024-01-31',
-                online_goals: [12345]
-            })
+def get_campaign_statistics(campaign_ids):
+    account = 'myaccount'
+    client = 'myclient'
+
+    response = requests.post(
+        'https://your-domain.com/webHooks/getCampaignsStatistics',
+        params={'account': account, 'client': client},
+        json={
+            'campaign_ids': campaign_ids,
+            'fields': ['expense', 'clicks', 'impressions', 'ctr', 'cpa'],
+            'from': '2024-01-01',
+            'to': '2024-01-31',
+            'online_goals': [12345]
         }
-    );
+    )
 
-    const data = await response.json();
+    data = response.json()
 
-    if (data.status === 'ok') {
-        data.statistics.forEach(stat => {
-            console.log(`Кампания ${stat.CampaignId}:`);
-            console.log(`  Расход: ${stat.data.expense} руб.`);
-            console.log(`  Клики: ${stat.data.clicks}`);
-            console.log(`  CTR: ${stat.data.ctr}%`);
-            console.log(`  CPA: ${stat.data.cpa} руб.`);
-        });
-    } else {
-        console.error('Ошибка:', data.error);
-    }
-}
+    if data.get('status') == 'ok':
+        for stat in data['statistics']:
+            print(f"Кампания {stat['CampaignId']}:")
+            print(f"  Расход: {stat['data']['expense']} руб.")
+            print(f"  Клики: {stat['data']['clicks']}")
+            print(f"  CTR: {stat['data']['ctr']}%")
+            print(f"  CPA: {stat['data']['cpa']} руб.")
+    else:
+        print(f"Ошибка: {data.get('error')}")
+
+# Использование
+get_campaign_statistics([16433668, 16433669])
 ```
 
-### Пример 3: Полный цикл работы с API (PHP)
+### Пример 3: Полный класс для работы с API (Python)
 
-```php
-<?php
+```python
+import requests
+from typing import List, Dict, Optional
 
-class YandexDirectAPI
-{
-    private $baseUrl = 'https://your-domain.com/webHooks';
-    private $account;
-    private $client;
+class YandexDirectAPI:
+    """Класс для работы с API Яндекс.Директ"""
 
-    public function __construct($account, $client)
-    {
-        $this->account = $account;
-        $this->client = $client;
-    }
+    def __init__(self, account: str, client: str):
+        self.base_url = 'https://your-domain.com/webHooks'
+        self.account = account
+        self.client = client
 
-    private function makeRequest($endpoint, $method = 'GET', $body = null)
-    {
-        $url = "{$this->baseUrl}/{$endpoint}?account={$this->account}&client={$this->client}";
+    def _make_request(self, endpoint: str, method: str = 'GET', data: Optional[Dict] = None) -> Dict:
+        """Базовый метод для выполнения запросов к API"""
+        url = f"{self.base_url}/{endpoint}"
+        params = {'account': self.account, 'client': self.client}
 
-        $options = [
-            'http' => [
-                'method' => $method,
-                'header' => 'Content-Type: application/json'
-            ]
-        ];
+        if method == 'GET':
+            response = requests.get(url, params=params)
+        else:
+            response = requests.post(url, params=params, json=data)
 
-        if ($body) {
-            $options['http']['content'] = json_encode($body);
+        response.raise_for_status()
+        return response.json()
+
+    def validate_account(self) -> bool:
+        """Проверка валидности аккаунта"""
+        result = self._make_request('validateYandexDirectAccount', 'POST')
+        return result.get('valid', False)
+
+    def get_campaigns(self) -> List[Dict]:
+        """Получение списка кампаний"""
+        result = self._make_request('getCampaignsList')
+        return result.get('campaigns', [])
+
+    def get_statistics(
+        self,
+        campaign_ids: List[int],
+        date_from: str,
+        date_to: str,
+        fields: List[str] = None,
+        online_goals: List[int] = None,
+        offline_goals: List[int] = None
+    ) -> List[Dict]:
+        """
+        Получение статистики кампаний
+
+        Args:
+            campaign_ids: Список ID кампаний
+            date_from: Дата начала периода (YYYY-MM-DD)
+            date_to: Дата окончания периода (YYYY-MM-DD)
+            fields: Список полей для получения
+            online_goals: ID онлайн целей для расчета CPA
+            offline_goals: ID оффлайн целей для расчета CPL
+
+        Returns:
+            Список статистики по кампаниям
+        """
+        if fields is None:
+            fields = ['expense', 'clicks']
+
+        data = {
+            'campaign_ids': campaign_ids,
+            'fields': fields,
+            'from': date_from,
+            'to': date_to
         }
 
-        $context = stream_context_create($options);
-        $response = file_get_contents($url, false, $context);
+        if online_goals:
+            data['online_goals'] = online_goals
+        if offline_goals:
+            data['offline_goals'] = offline_goals
 
-        return json_decode($response, true);
-    }
+        result = self._make_request('getCampaignsStatistics', 'POST', data)
+        return result.get('statistics', [])
 
-    public function validateAccount()
-    {
-        $result = $this->makeRequest('validateYandexDirectAccount', 'POST');
-        return $result['valid'] ?? false;
-    }
+# Использование
+if __name__ == '__main__':
+    api = YandexDirectAPI('myaccount', 'myclient')
 
-    public function getCampaigns()
-    {
-        $result = $this->makeRequest('getCampaignsList');
-        return $result['campaigns'] ?? [];
-    }
+    # Проверяем доступ
+    if api.validate_account():
+        print("✓ Аккаунт валидный")
 
-    public function getStatistics($campaignIds, $from, $to, $fields = ['expense', 'clicks'])
-    {
-        $body = [
-            'campaign_ids' => $campaignIds,
-            'fields' => $fields,
-            'from' => $from,
-            'to' => $to
-        ];
+        # Получаем список кампаний
+        campaigns = api.get_campaigns()
+        print(f"Найдено кампаний: {len(campaigns)}")
 
-        $result = $this->makeRequest('getCampaignsStatistics', 'POST', $body);
-        return $result['statistics'] ?? [];
-    }
-}
+        # Получаем ID первых 5 кампаний
+        campaign_ids = [c['Id'] for c in campaigns[:5]]
 
-// Использование
-$api = new YandexDirectAPI('myaccount', 'myclient');
+        # Получаем статистику
+        statistics = api.get_statistics(
+            campaign_ids=campaign_ids,
+            date_from='2024-01-01',
+            date_to='2024-01-31',
+            fields=['expense', 'clicks', 'impressions', 'ctr'],
+            online_goals=[12345]
+        )
 
-// Проверяем доступ
-if ($api->validateAccount()) {
-    // Получаем список кампаний
-    $campaigns = $api->getCampaigns();
-
-    // Получаем ID первых 5 кампаний
-    $campaignIds = array_slice(array_column($campaigns, 'Id'), 0, 5);
-
-    // Получаем статистику
-    $statistics = $api->getStatistics(
-        $campaignIds,
-        '2024-01-01',
-        '2024-01-31',
-        ['expense', 'clicks', 'impressions', 'ctr']
-    );
-
-    print_r($statistics);
-} else {
-    echo "Ошибка доступа к аккаунту";
-}
+        # Выводим результаты
+        for stat in statistics:
+            print(f"\nКампания {stat['CampaignId']}:")
+            for field, value in stat['data'].items():
+                print(f"  {field}: {value}")
+    else:
+        print("✗ Ошибка доступа к аккаунту")
 ```
 
 ### Пример 4: Получение статистики с целями
 
-```bash
-#!/bin/bash
-
-ACCOUNT="myaccount"
-CLIENT="myclient"
-BASE_URL="https://your-domain.com/webHooks"
+```python
+import requests
 
 # Получение статистики с расчетом CPA и CPL
-curl -X POST "${BASE_URL}/getCampaignsStatistics?account=${ACCOUNT}&client=${CLIENT}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "campaign_ids": [16433668],
-    "fields": ["expense", "clicks", "cpa", "cpl", "online_conversions", "qualified_leads"],
-    "from": "2024-01-01",
-    "to": "2024-01-31",
-    "online_goals": [12345, 67890],
-    "offline_goals": [11111, 22222]
-  }'
+response = requests.post(
+    'https://your-domain.com/webHooks/getCampaignsStatistics',
+    params={
+        'account': 'myaccount',
+        'client': 'myclient'
+    },
+    json={
+        'campaign_ids': [16433668],
+        'fields': ['expense', 'clicks', 'cpa', 'cpl', 'online_conversions', 'qualified_leads'],
+        'from': '2024-01-01',
+        'to': '2024-01-31',
+        'online_goals': [12345, 67890],
+        'offline_goals': [11111, 22222]
+    }
+)
+
+data = response.json()
+if data.get('status') == 'ok':
+    for stat in data['statistics']:
+        print(f"Кампания {stat['CampaignId']}:")
+        print(f"  Расход: {stat['data']['expense']}")
+        print(f"  Клики: {stat['data']['clicks']}")
+        print(f"  CPA: {stat['data']['cpa']}")
+        print(f"  CPL: {stat['data']['cpl']}")
+        print(f"  Онлайн конверсии: {stat['data']['online_conversions']}")
+        print(f"  Квалифицированные лиды: {stat['data']['qualified_leads']}")
 ```
 
 ---
@@ -536,13 +588,6 @@ curl -X POST "${BASE_URL}/getCampaignsStatistics?account=${ACCOUNT}&client=${CLI
 - Не вызывайте валидацию чаще 1 раза в минуту для одного аккаунта
 - Рекомендуется запрашивать статистику не более 10 кампаний за раз
 - Кэшируйте результаты на стороне клиента
-
-### Безопасность
-
-- Используйте HTTPS для всех запросов
-- Не передавайте учетные данные в теле запроса
-- Логируйте все ошибки для отладки
-
 ---
 
 ## Поддержка

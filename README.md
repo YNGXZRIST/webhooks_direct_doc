@@ -5,9 +5,11 @@
 1. [Общая информация](#общая-информация)
 2. [Аутентификация](#аутентификация)
 3. [Методы API](#методы-api)
-   - [Валидация аккаунта](#1-валидация-аккаунта)
-   - [Получение списка кампаний](#2-получение-списка-кампаний)
-   - [Получение статистики кампаний](#3-получение-статистики-кампаний)
+    - [Валидация аккаунта](#1-валидация-аккаунта)
+    - [Получение списка кампаний](#2-получение-списка-кампаний)
+    - [Получение списка групп объявлений](#3-получение-списка-групп-объявлений)
+    - [Получение статистики кампаний](#4-получение-статистики-кампаний)
+    - [Получение статистики групп объявлений](#5-получение-статистики-групп-объявлений)
 4. [Коды ошибок](#коды-ошибок)
 5. [Примеры использования](#примеры-использования)
 
@@ -166,7 +168,86 @@ print(response.json())
 
 ---
 
-### 3. Получение статистики кампаний
+### 3. Получение списка групп объявлений
+
+Получение списка групп объявлений для указанных кампаний.
+
+#### Endpoint
+```
+GET /webHooks/getGroupsList
+```
+
+#### Параметры
+
+**Query параметры:**
+
+| Параметр | Обязательный | Тип | Описание |
+|----------|--------------|-----|----------|
+| `account` | Да | string | Логин аккаунта |
+| `client` | Да | string | Логин клиента |
+| `campaign_ids` | Да | JSON array | JSON-массив ID кампаний |
+
+#### Пример запроса
+
+```python
+import requests
+import json
+
+response = requests.get(
+    'https://your-domain.com/webHooks/getGroupsList',
+    params={
+        'account': 'myaccount',
+        'client': 'myclient',
+        'campaign_ids': json.dumps([16433668, 16433669])
+    }
+)
+print(response.json())
+```
+
+#### Пример успешного ответа
+
+```json
+{
+    "status": "ok",
+    "groups": [
+        {
+            "Id": 4567890,
+            "Name": "Группа 1",
+            "CampaignId": 16433668,
+            "Status": "ACCEPTED",
+            "ServingStatus": "ELIGIBLE"
+        },
+        {
+            "Id": 4567891,
+            "Name": "Группа 2",
+            "CampaignId": 16433668,
+            "Status": "ACCEPTED",
+            "ServingStatus": "ELIGIBLE"
+        }
+    ]
+}
+```
+
+#### Поля группы
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `Id` | integer | Уникальный идентификатор группы объявлений |
+| `Name` | string | Название группы объявлений |
+| `CampaignId` | integer | ID родительской кампании |
+| `Status` | string | Статус группы |
+| `ServingStatus` | string | Статус показа группы |
+
+#### Возможные ошибки
+
+| Ошибка | Описание |
+|--------|----------|
+| `Параметры account и client обязательны` | Отсутствуют параметры в URL |
+| `Параметр campaign_ids обязателен` | Не указаны ID кампаний |
+
+---
+
+### 4. Получение статистики кампаний
 
 Получение детальной статистики рекламных кампаний с расчетом различных метрик.
 
@@ -318,6 +399,136 @@ CTR = (Клики / Показы) × 100%
 | `Параметры account и client обязательны` | Отсутствуют параметры в URL |
 | `Тело запроса должно содержать JSON с параметрами` | Пустое или невалидное тело запроса |
 | `Параметр campaign_ids обязателен` | Не указаны ID кампаний |
+| `Параметр fields обязателен` | Не указаны поля для получения |
+| `Параметры from и to обязательны` | Не указаны даты периода |
+| `Для расчета CPA необходимо указать online_goals` | Запрошен CPA без онлайн целей |
+| `Для расчета CPL необходимо указать offline_goals` | Запрошен CPL без оффлайн целей |
+
+---
+
+### 5. Получение статистики групп объявлений
+
+Получение детальной статистики групп объявлений с расчетом различных метрик (аналогично статистике кампаний).
+
+#### Endpoint
+```
+POST /webHooks/getGroupsStatistics
+```
+
+#### Параметры
+
+**Query параметры:**
+
+| Параметр | Обязательный | Тип | Описание |
+|----------|--------------|-----|----------|
+| `account` | Да | string | Логин аккаунта |
+| `client` | Да | string | Логин клиента |
+
+**Body параметры (JSON):**
+
+| Параметр | Обязательный | Тип | Описание |
+|----------|--------------|-----|----------|
+| `group_ids` | Да | array | Массив ID групп объявлений |
+| `fields` | Да | array | Массив полей для получения |
+| `from` | Да | string | Дата начала периода (YYYY-MM-DD) |
+| `to` | Да | string | Дата окончания периода (YYYY-MM-DD) |
+| `online_goals` | Нет | array | Массив ID онлайн целей (для CPA) |
+| `offline_goals` | Нет | array | Массив ID оффлайн целей (для CPL) |
+
+#### Доступные поля (fields)
+
+Аналогично полям для статистики кампаний:
+
+| Поле | Описание | Требует целей |
+|------|----------|---------------|
+| `expense` | Расход в валюте аккаунта | - |
+| `clicks` | Количество кликов | - |
+| `impressions` | Количество показов | - |
+| `bounces` | Количество отказов | - |
+| `ctr` | CTR - кликабельность (%) | - |
+| `cpa` | CPA - стоимость онлайн конверсии | `online_goals` |
+| `cpl` | CPL - стоимость оффлайн лида | `offline_goals` |
+| `cpc` | CPC - стоимость конверсии (все цели) | `online_goals` или `offline_goals` |
+| `online_conversions` | Детализация онлайн конверсий | `online_goals` |
+| `qualified_leads` | Детализация оффлайн лидов | `offline_goals` |
+
+#### Пример запроса
+
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/getGroupsStatistics',
+    params={'account': 'myaccount', 'client': 'myclient'},
+    json={
+        'group_ids': [4567890, 4567891],
+        'fields': ['expense', 'clicks', 'impressions', 'ctr', 'cpa'],
+        'from': '2024-01-01',
+        'to': '2024-01-31',
+        'online_goals': [12345, 67890]
+    }
+)
+print(response.json())
+```
+
+#### Пример успешного ответа
+
+```json
+{
+    "status": "ok",
+    "statistics": [
+        {
+            "AdGroupId": 4567890,
+            "data": {
+                "expense": 750.25,
+                "clicks": 80,
+                "impressions": 2500,
+                "ctr": 3.20,
+                "cpa": 37.51,
+                "online_conversions": {
+                    "total": 20,
+                    "details": {
+                        "12345": 15,
+                        "67890": 5
+                    }
+                }
+            }
+        },
+        {
+            "AdGroupId": 4567891,
+            "data": {
+                "expense": 425.50,
+                "clicks": 45,
+                "impressions": 1600,
+                "ctr": 2.81,
+                "cpa": 42.55,
+                "online_conversions": {
+                    "total": 10,
+                    "details": {
+                        "12345": 10
+                    }
+                }
+            }
+        }
+    ]
+}
+```
+
+#### Структура данных статистики
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `AdGroupId` | integer | ID группы объявлений |
+| `data` | object | Объект с запрошенными метриками |
+| `data.*` | mixed | Аналогично структуре статистики кампаний |
+
+#### Возможные ошибки
+
+| Ошибка | Описание |
+|--------|----------|
+| `Параметры account и client обязательны` | Отсутствуют параметры в URL |
+| `Тело запроса должно содержать JSON с параметрами` | Пустое или невалидное тело запроса |
+| `Параметр group_ids обязателен` | Не указаны ID групп |
 | `Параметр fields обязателен` | Не указаны поля для получения |
 | `Параметры from и to обязательны` | Не указаны даты периода |
 | `Для расчета CPA необходимо указать online_goals` | Запрошен CPA без онлайн целей |
@@ -506,6 +717,64 @@ class YandexDirectAPI:
         result = self._make_request('getCampaignsStatistics', 'POST', data)
         return result.get('statistics', [])
 
+    def get_groups(self, campaign_ids: List[int]) -> List[Dict]:
+        """
+        Получение списка групп объявлений для кампаний
+
+        Args:
+            campaign_ids: Список ID кампаний
+
+        Returns:
+            Список групп объявлений
+        """
+        import json
+        result = self._make_request(
+            'getGroupsList',
+            params={'campaign_ids': json.dumps(campaign_ids)}
+        )
+        return result.get('groups', [])
+
+    def get_groups_statistics(
+        self,
+        group_ids: List[int],
+        date_from: str,
+        date_to: str,
+        fields: List[str] = None,
+        online_goals: List[int] = None,
+        offline_goals: List[int] = None
+    ) -> List[Dict]:
+        """
+        Получение статистики групп объявлений
+
+        Args:
+            group_ids: Список ID групп объявлений
+            date_from: Дата начала периода (YYYY-MM-DD)
+            date_to: Дата окончания периода (YYYY-MM-DD)
+            fields: Список полей для получения
+            online_goals: ID онлайн целей для расчета CPA
+            offline_goals: ID оффлайн целей для расчета CPL
+
+        Returns:
+            Список статистики по группам
+        """
+        if fields is None:
+            fields = ['expense', 'clicks']
+
+        data = {
+            'group_ids': group_ids,
+            'fields': fields,
+            'from': date_from,
+            'to': date_to
+        }
+
+        if online_goals:
+            data['online_goals'] = online_goals
+        if offline_goals:
+            data['offline_goals'] = offline_goals
+
+        result = self._make_request('getGroupsStatistics', 'POST', data)
+        return result.get('statistics', [])
+
 # Использование
 if __name__ == '__main__':
     api = YandexDirectAPI('myaccount', 'myclient')
@@ -535,6 +804,27 @@ if __name__ == '__main__':
             print(f"\nКампания {stat['CampaignId']}:")
             for field, value in stat['data'].items():
                 print(f"  {field}: {value}")
+
+        # Получаем группы объявлений для первой кампании
+        if campaign_ids:
+            groups = api.get_groups([campaign_ids[0]])
+            print(f"\nНайдено групп в кампании {campaign_ids[0]}: {len(groups)}")
+
+            # Получаем статистику первых 3 групп
+            if groups:
+                group_ids = [g['Id'] for g in groups[:3]]
+                group_statistics = api.get_groups_statistics(
+                    group_ids=group_ids,
+                    date_from='2024-01-01',
+                    date_to='2024-01-31',
+                    fields=['expense', 'clicks', 'ctr']
+                )
+
+                # Выводим результаты по группам
+                for stat in group_statistics:
+                    print(f"\nГруппа {stat['AdGroupId']}:")
+                    for field, value in stat['data'].items():
+                        print(f"  {field}: {value}")
     else:
         print("✗ Ошибка доступа к аккаунту")
 ```
@@ -573,6 +863,68 @@ if data.get('status') == 'ok':
         print(f"  Квалифицированные лиды: {stat['data']['qualified_leads']}")
 ```
 
+### Пример 5: Работа с группами объявлений
+
+```python
+import requests
+import json
+
+account = 'myaccount'
+client = 'myclient'
+base_url = 'https://your-domain.com/webHooks'
+
+# Шаг 1: Получаем список кампаний
+campaigns_response = requests.get(
+    f'{base_url}/getCampaignsList',
+    params={'account': account, 'client': client}
+)
+campaigns = campaigns_response.json()['campaigns']
+campaign_ids = [c['Id'] for c in campaigns[:2]]
+
+print(f"Выбрано кампаний: {len(campaign_ids)}")
+
+# Шаг 2: Получаем группы объявлений для кампаний
+groups_response = requests.get(
+    f'{base_url}/getGroupsList',
+    params={
+        'account': account,
+        'client': client,
+        'campaign_ids': json.dumps(campaign_ids)
+    }
+)
+groups = groups_response.json()['groups']
+group_ids = [g['Id'] for g in groups[:5]]
+
+print(f"Найдено групп: {len(groups)}")
+print(f"Выбрано групп для статистики: {len(group_ids)}")
+
+# Шаг 3: Получаем статистику по группам
+stats_response = requests.post(
+    f'{base_url}/getGroupsStatistics',
+    params={'account': account, 'client': client},
+    json={
+        'group_ids': group_ids,
+        'fields': ['expense', 'clicks', 'impressions', 'ctr'],
+        'from': '2024-01-01',
+        'to': '2024-01-31'
+    }
+)
+
+stats_data = stats_response.json()
+if stats_data.get('status') == 'ok':
+    for stat in stats_data['statistics']:
+        group_info = next((g for g in groups if g['Id'] == stat['AdGroupId']), None)
+        group_name = group_info['Name'] if group_info else 'Неизвестная группа'
+
+        print(f"\nГруппа {stat['AdGroupId']} ({group_name}):")
+        print(f"  Расход: {stat['data']['expense']} руб.")
+        print(f"  Клики: {stat['data']['clicks']}")
+        print(f"  Показы: {stat['data']['impressions']}")
+        print(f"  CTR: {stat['data']['ctr']}%")
+else:
+    print(f"Ошибка: {stats_data.get('error')}")
+```
+
 ---
 
 ## Рекомендации
@@ -581,12 +933,15 @@ if data.get('status') == 'ok':
 
 - **Валидация аккаунта**: 200-500 мс
 - **Получение списка кампаний**: 500-1000 мс
-- **Получение статистики**: 1-3 секунды (зависит от количества кампаний)
+- **Получение списка групп**: 500-1500 мс (зависит от количества кампаний)
+- **Получение статистики кампаний**: 1-3 секунды (зависит от количества кампаний)
+- **Получение статистики групп**: 1-4 секунды (зависит от количества групп)
 
 ### Лимиты
 
 - Не вызывайте валидацию чаще 1 раза в минуту для одного аккаунта
 - Рекомендуется запрашивать статистику не более 10 кампаний за раз
+- Рекомендуется запрашивать статистику не более 20 групп за раз
 - Кэшируйте результаты на стороне клиента
 ---
 
@@ -598,5 +953,5 @@ if data.get('status') == 'ok':
 
 ---
 
-**Версия документации:** 1.0
-**Дата последнего обновления:** 2025-12-03
+**Версия документации:** 1.1
+**Дата последнего обновления:** 2025-12-11

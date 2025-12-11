@@ -285,6 +285,7 @@ POST /webHooks/getCampaignsStatistics
 | `impressions` | Количество показов | - |
 | `bounces` | Количество отказов | - |
 | `ctr` | CTR - кликабельность (%) | - |
+| `avg_pageviews` | Глубина просмотра (стр) | - |
 | `cpa` | CPA - стоимость онлайн конверсии | `online_goals` |
 | `cpl` | CPL - стоимость оффлайн лида | `offline_goals` |
 | `cpc` | CPC - стоимость конверсии (все цели) | `online_goals` или `offline_goals` |
@@ -301,7 +302,7 @@ response = requests.post(
     params={'account': 'myaccount', 'client': 'myclient'},
     json={
         'campaign_ids': [16433668, 16433669],
-        'fields': ['expense', 'clicks', 'impressions', 'ctr', 'cpa'],
+        'fields': ['expense','avg_pageviews', 'clicks', 'impressions', 'ctr', 'cpa'],
         'from': '2024-01-01',
         'to': '2024-01-31',
         'online_goals': [12345, 67890]
@@ -320,6 +321,7 @@ print(response.json())
             "CampaignId": 16433668,
             "data": {
                 "expense": 1500.50,
+                "avg_pageviews":1.3,
                 "clicks": 150,
                 "impressions": 5000,
                 "ctr": 3.00,
@@ -337,6 +339,7 @@ print(response.json())
             "CampaignId": 16433669,
             "data": {
                 "expense": 850.25,
+                "avg_pageviews": 2.34,
                 "clicks": 95,
                 "impressions": 3200,
                 "ctr": 2.97,
@@ -360,6 +363,7 @@ print(response.json())
 | `CampaignId` | integer | ID кампании |
 | `data` | object | Объект с запрошенными метриками |
 | `data.expense` | number | Расход |
+| `data.avg_pageviews` | number | Глубина просмотра страницы |
 | `data.clicks` | integer | Количество кликов |
 | `data.impressions` | integer | Количество показов |
 | `data.ctr` | number | CTR в процентах |
@@ -442,6 +446,7 @@ POST /webHooks/getGroupsStatistics
 | Поле | Описание | Требует целей |
 |------|----------|---------------|
 | `expense` | Расход в валюте аккаунта | - |
+| `avg_pageviews` | Глубина просмотра (стр) | - |
 | `clicks` | Количество кликов | - |
 | `impressions` | Количество показов | - |
 | `bounces` | Количество отказов | - |

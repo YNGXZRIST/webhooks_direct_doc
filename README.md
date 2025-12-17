@@ -276,6 +276,7 @@ POST /webHooks/getCampaignsStatistics
 | `online_goals` | Нет | array | Массив ID онлайн целей (для CPA) |
 | `offline_goals` | Нет | array | Массив ID оффлайн целей (для CPL) |
 | `breakdowns` | Нет | array | Массив полей для группировки (например: ["device", "gender"]) |
+| `segments` | Нет | object | Объект с фильтрами для сегментации данных (например: {"gender": ["GENDER_MALE"], "age": ["AGE_25_34"]}) |
 
 #### Доступные поля (fields)
 
@@ -318,6 +319,52 @@ POST /webHooks/getCampaignsStatistics
 
 **Примечание:** Вы можете комбинировать несколько полей для более детальной группировки, например `["device", "gender", "age"]` или `["slot", "targeting_category", "match_type"]`, или `["targeting_location_name", "location_of_presence_name"]`.
 
+#### Параметр segments (фильтрация данных)
+
+Параметр `segments` позволяет фильтровать статистику по определенным условиям. В отличие от `breakdowns` (который группирует данные), `segments` отбирает только те данные, которые соответствуют указанным критериям.
+
+**Формат:** объект, где ключи — поля для фильтрации, значения — массивы допустимых значений.
+
+**Доступные поля для segments:**
+
+| Поле | Описание | Возможные значения |
+|------|----------|-------------------|
+| `gender` | Фильтр по полу пользователя | `GENDER_MALE`, `GENDER_FEMALE`, `UNKNOWN` |
+| `age` | Фильтр по возрастной группе | `AGE_18_24`, `AGE_25_34`, `AGE_35_44`, `AGE_45_54`, `AGE_55`, `UNKNOWN` |
+
+**Примеры использования:**
+
+Получить статистику только по мужчинам 25-34 года:
+```json
+{
+    "segments": {
+        "gender": ["GENDER_MALE"],
+        "age": ["AGE_25_34"]
+    }
+}
+```
+
+Получить статистику по нескольким возрастным группам:
+```json
+{
+    "segments": {
+        "age": ["AGE_18_24", "AGE_25_34", "AGE_35_44"]
+    }
+}
+```
+
+Комбинировать несколько полов и возрастов:
+```json
+{
+    "segments": {
+        "gender": ["GENDER_MALE", "GENDER_FEMALE"],
+        "age": ["AGE_25_34", "AGE_35_44"]
+    }
+}
+```
+
+**Важно:** При использовании `segments` с `breakdowns`, фильтрация применяется первой, затем происходит группировка отфильтрованных данных.
+
 #### Пример запроса
 
 ```python
@@ -352,6 +399,53 @@ response = requests.post(
         'to': '2024-01-31',
         'online_goals': [12345],
         'breakdowns': ['device', 'gender']
+    }
+)
+print(response.json())
+```
+
+#### Пример запроса с segments (фильтрация)
+
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/getCampaignsStatistics',
+    params={'account': 'myaccount', 'client': 'myclient'},
+    json={
+        'campaign_ids': [76757745],
+        'fields': ['expense', 'clicks', 'impressions'],
+        'from': '2024-01-01',
+        'to': '2024-01-31',
+        'segments': {
+            'gender': ['GENDER_MALE'],
+            'age': ['AGE_18_24', 'AGE_25_34']
+        }
+    }
+)
+print(response.json())
+```
+
+#### Пример запроса с segments и breakdowns
+
+Сначала фильтруем данные по мужчинам 18-34 лет, затем группируем по возрасту:
+
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/getCampaignsStatistics',
+    params={'account': 'myaccount', 'client': 'myclient'},
+    json={
+        'campaign_ids': [76757745],
+        'fields': ['expense', 'clicks', 'impressions'],
+        'from': '2024-01-01',
+        'to': '2024-01-31',
+        'segments': {
+            'gender': ['GENDER_MALE'],
+            'age': ['AGE_18_24', 'AGE_25_34']
+        },
+        'breakdowns': ['age']
     }
 )
 print(response.json())
@@ -587,6 +681,39 @@ print(response.json())
 }
 ```
 
+#### Пример успешного ответа с segments
+
+```json
+{
+    "status": "ok",
+    "statistics": [
+        {
+            "CampaignId": 76757745,
+            "data": {
+                "expense": 0
+            },
+            "segments": [
+                {
+                    "fields": {
+                        "gender": "GENDER_MALE",
+                        "age": "AGE_18_24"
+                    },
+                    "data": {
+                        "expense": 0
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
+**Примечание:** В ответе с `segments` структура данных похожа на `breakdowns`:
+- `data` - общая статистика с учетом фильтров
+- `segments` - массив с детализацией по каждой комбинации значений из фильтра
+- `segments[].fields` - конкретные значения фильтров для данного сегмента
+- `segments[].data` - статистика для данного сегмента
+
 #### Структура данных статистики
 
 | Поле | Тип | Описание |
@@ -607,6 +734,9 @@ print(response.json())
 | `breakdowns` | array | Массив объектов с группировкой по указанным полям (если параметр breakdowns указан) |
 | `breakdowns[].fields` | object | Объект с полями группировки и их значениями |
 | `breakdowns[].data` | object | Объект с метриками для данной группировки |
+| `segments` | array | Массив объектов с детализацией по сегментам (если параметр segments указан) |
+| `segments[].fields` | object | Объект с полями фильтрации и их конкретными значениями |
+| `segments[].data` | object | Объект с метриками для данного сегмента |
 
 #### Расчет метрик
 

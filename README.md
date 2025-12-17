@@ -275,6 +275,7 @@ POST /webHooks/getCampaignsStatistics
 | `to` | Да | string | Дата окончания периода (YYYY-MM-DD) |
 | `online_goals` | Нет | array | Массив ID онлайн целей (для CPA) |
 | `offline_goals` | Нет | array | Массив ID оффлайн целей (для CPL) |
+| `breakdowns` | Нет | array | Массив полей для группировки (например: ["device", "gender"]) |
 
 #### Доступные поля (fields)
 
@@ -291,6 +292,31 @@ POST /webHooks/getCampaignsStatistics
 | `cpc` | CPC - стоимость конверсии (все цели) | `online_goals` или `offline_goals` |
 | `online_conversions` | Детализация онлайн конверсий | `online_goals` |
 | `qualified_leads` | Детализация оффлайн лидов | `offline_goals` |
+
+#### Доступные поля для breakdowns
+
+Параметр `breakdowns` позволяет группировать статистику по различным измерениям.
+
+| Поле                        | Описание | Возможные значения |
+|-----------------------------|----------|-------------------|
+| `ad_format`                 | Формат показа объявления | `IMAGE` (графический)<br>`TEXT` (текстовый)<br>`VIDEO` (видео)<br>`SMART_MULTIPLE` (смарт-баннер)<br>`SMART_SINGLE` (смарт-объявление)<br>`ADAPTIVE_IMAGE` (адаптивный графический)<br>`SMART_TILE` (смарт-плитка) |
+| `ad_network_type`           | Тип площадки, где показано объявление | `SEARCH` (на поиске)<br>`AD_NETWORK` (в сетях) |
+| `age`                       | Возрастная группа пользователя | `AGE_0_17` (0-17 лет)<br>`AGE_18_24` (18-24 года)<br>`AGE_25_34` (25-34 года)<br>`AGE_35_44` (35-44 года)<br>`AGE_45` (45+ лет)<br>`AGE_45_54` (45-54 года)<br>`AGE_55` (55+ лет)<br>`UNKNOWN` (неизвестно) |
+| `criteria_type`             | Тип условия показа (устаревшее, используйте `criterion_type`) | `KEYWORD` (ключевая фраза)<br>`AUTOTARGETING` (автотаргетинг)<br>`AUDIENCE_TARGET` (нацеливание на аудиторию)<br>`DYNAMIC_TEXT_AD_TARGET` (нацеливание для динамических объявлений)<br>`SMART_BANNER_FILTER` (фильтр для смарт-баннеров) |
+| `criterion`                 | Название или текст условия показа | Для ключевых фраз: фраза с идентификатором<br>Для релевантных фраз: текст фразы или "Автоматически добавленная фраза"<br>Для автотаргетинга: "---autotargeting"<br>Для нацеливания на аудиторию: название условия<br>Для динамических объявлений: название условия или фильтра<br>Для смарт-баннеров: название фильтра<br>*(Группировка по CriterionId)* |
+| `criterion_type`            | Тип условия показа (рекомендуется вместо `criteria_type`) | `KEYWORD` (ключевая фраза)<br>`AUTOTARGETING` (автотаргетинг)<br>`RETARGETING` (ретаргетинг и подбор аудитории)<br>`INTERESTS_AND_DEMOGRAPHICS` (профиль пользователей)<br>`MOBILE_APP_CATEGORY` (интерес к категории приложений)<br>`WEBPAGE_FILTER` (нацеливание на основе страниц сайта)<br>`FEED_FILTER` (фильтр на основе фида)<br>`OFFER_RETARGETING` (офферный ретаргетинг) |
+| `device`                    | Тип устройства, на котором показано объявление | `DESKTOP` (десктоп)<br>`MOBILE` (мобильный)<br>`TABLET` (планшет)<br>`SMART_TV` (умное ТВ) |
+| `gender`                    | Пол пользователя | `GENDER_MALE` (мужской)<br>`GENDER_FEMALE` (женский)<br>`UNKNOWN` (неизвестно) |
+| `matched_keyword`           | Подобранная фраза | Для показа по синониму: текст синонима<br>Для релевантной фразы: текст релевантной фразы<br>Для динамического объявления: автоматически сформированная фраза<br>В остальных случаях: пустое значение |
+| `match_type`                | Тип соответствия ключевой фразе | `RELATED_KEYWORD` (по дополнительной релевантной фразе)<br>`SYNONYM` (по семантическому соответствию)<br>`KEYWORD` (по ключевой фразе)<br>`NONE` (в остальных случаях) |
+| `mobile_platform`           | Тип операционной системы | `ANDROID` (Android)<br>`IOS` (iOS)<br>`OTHER` (другие)<br>`UNKNOWN` (неизвестно) |
+| `placement`                 | Название площадки показов | Название конкретной площадки (строковое значение) |
+| `slot`                      | Блок показа объявления | `ALONE` (эксклюзивное размещение)<br>`PREMIUMBLOCK` (спецразмещение)<br>`SUGGEST` (реклама в саджесте)<br>`PRODUCT_GALLERY` (товарная галерея)<br>`OTHER` (другие блоки) |
+| `targeting_category`        | Категория таргетинга | `EXACT` (целевые запросы - объявление точно отвечает на запросы)<br>`ALTERNATIVE` (альтернативные запросы - замена продвигаемого продукта)<br>`COMPETITOR` (запросы с упоминанием конкурентов)<br>`BROADER` (широкие запросы с интересом к продукту)<br>`ACCESSORY` (сопутствующие запросы по смежным продуктам) |
+| `targeting_location_name`   | Название региона таргетинга | Название региона, который был указан в настройках таргетинга кампании (строковое значение) |
+| `location_of_presence_name` | Название региона местонахождения пользователя | Фактическое местонахождение пользователя на момент показа объявления (строковое значение) |
+
+**Примечание:** Вы можете комбинировать несколько полей для более детальной группировки, например `["device", "gender", "age"]` или `["slot", "targeting_category", "match_type"]`, или `["targeting_location_name", "location_of_presence_name"]`.
 
 #### Пример запроса
 
@@ -309,6 +335,94 @@ response = requests.post(
     }
 )
 print(response.json())
+```
+
+#### Пример запроса с breakdowns
+
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/getCampaignsStatistics',
+    params={'account': 'myaccount', 'client': 'myclient'},
+    json={
+        'campaign_ids': [76757740],
+        'fields': ['expense', 'clicks', 'impressions', 'cpa', 'cpc', 'online_conversions', 'avg_pageviews'],
+        'from': '2024-01-01',
+        'to': '2024-01-31',
+        'online_goals': [12345],
+        'breakdowns': ['device', 'gender']
+    }
+)
+print(response.json())
+```
+
+#### Примеры использования различных breakdowns
+
+**Группировка по возрасту и полу:**
+```python
+{
+    'campaign_ids': [76757740],
+    'fields': ['expense', 'clicks', 'impressions'],
+    'from': '2024-01-01',
+    'to': '2024-01-31',
+    'breakdowns': ['age', 'gender']
+}
+```
+
+**Группировка по типу площадки и устройству:**
+```python
+{
+    'campaign_ids': [76757740],
+    'fields': ['expense', 'clicks', 'impressions', 'ctr'],
+    'from': '2024-01-01',
+    'to': '2024-01-31',
+    'breakdowns': ['ad_network_type', 'device']
+}
+```
+
+**Группировка по типу условия показа:**
+```python
+{
+    'campaign_ids': [76757740],
+    'fields': ['expense', 'clicks', 'impressions'],
+    'from': '2024-01-01',
+    'to': '2024-01-31',
+    'breakdowns': ['criterion_type', 'criterion']
+}
+```
+
+**Группировка по блоку показа и категории таргетинга:**
+```python
+{
+    'campaign_ids': [76757740],
+    'fields': ['expense', 'clicks', 'impressions', 'ctr'],
+    'from': '2024-01-01',
+    'to': '2024-01-31',
+    'breakdowns': ['slot', 'targeting_category']
+}
+```
+
+**Группировка по типу соответствия и подобранной фразе:**
+```python
+{
+    'campaign_ids': [76757740],
+    'fields': ['expense', 'clicks', 'impressions'],
+    'from': '2024-01-01',
+    'to': '2024-01-31',
+    'breakdowns': ['match_type', 'matched_keyword']
+}
+```
+
+**Группировка по площадке и мобильной платформе:**
+```python
+{
+    'campaign_ids': [76757740],
+    'fields': ['expense', 'clicks', 'impressions', 'ctr'],
+    'from': '2024-01-01',
+    'to': '2024-01-31',
+    'breakdowns': ['placement', 'mobile_platform']
+}
 ```
 
 #### Пример успешного ответа
@@ -356,6 +470,123 @@ print(response.json())
 }
 ```
 
+#### Пример успешного ответа с breakdowns
+
+```json
+{
+    "status": "ok",
+    "statistics": [
+        {
+            "CampaignId": 76757740,
+            "data": {
+                "impressions": 30,
+                "clicks": 4,
+                "expense": 453.78,
+                "cpc": 0,
+                "online_conversions": {
+                    "total": 0,
+                    "details": {}
+                },
+                "cpa": 0,
+                "avg_pageviews": 0
+            },
+            "breakdowns": [
+                {
+                    "fields": {
+                        "device": "DESKTOP",
+                        "gender": "GENDER_FEMALE"
+                    },
+                    "data": {
+                        "impressions": 2,
+                        "clicks": 2,
+                        "expense": 257.4,
+                        "cpc": 0,
+                        "online_conversions": {
+                            "total": 0,
+                            "details": {}
+                        },
+                        "cpa": 0,
+                        "avg_pageviews": 1
+                    }
+                },
+                {
+                    "fields": {
+                        "device": "DESKTOP",
+                        "gender": "GENDER_MALE"
+                    },
+                    "data": {
+                        "impressions": 15,
+                        "clicks": 1,
+                        "expense": 149.28,
+                        "cpc": 0,
+                        "online_conversions": {
+                            "total": 0,
+                            "details": {}
+                        },
+                        "cpa": 0,
+                        "avg_pageviews": 3
+                    }
+                },
+                {
+                    "fields": {
+                        "device": "MOBILE",
+                        "gender": "GENDER_FEMALE"
+                    },
+                    "data": {
+                        "impressions": 4,
+                        "clicks": 0,
+                        "expense": 0,
+                        "cpc": 0,
+                        "online_conversions": {
+                            "total": 0,
+                            "details": {}
+                        },
+                        "cpa": 0,
+                        "avg_pageviews": 0
+                    }
+                },
+                {
+                    "fields": {
+                        "device": "MOBILE",
+                        "gender": "GENDER_MALE"
+                    },
+                    "data": {
+                        "impressions": 9,
+                        "clicks": 1,
+                        "expense": 47.1,
+                        "cpc": 0,
+                        "online_conversions": {
+                            "total": 0,
+                            "details": {}
+                        },
+                        "cpa": 0,
+                        "avg_pageviews": 1
+                    }
+                },
+                {
+                    "fields": {
+                        "device": "TABLET",
+                        "gender": "GENDER_MALE"
+                    },
+                    "data": {
+                        "impressions": 0,
+                        "clicks": 0,
+                        "expense": 0,
+                        "cpc": 0,
+                        "online_conversions": {
+                            "total": 0,
+                            "details": {}
+                        },
+                        "cpa": 0,
+                        "avg_pageviews": 0
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
 #### Структура данных статистики
 
 | Поле | Тип | Описание |
@@ -373,6 +604,9 @@ print(response.json())
 | `data.online_conversions.details` | object | Конверсии по целям (goalId: count) |
 | `data.qualified_leads.total` | integer | Общее количество оффлайн лидов |
 | `data.qualified_leads.details` | object | Лиды по целям (goalId: count) |
+| `breakdowns` | array | Массив объектов с группировкой по указанным полям (если параметр breakdowns указан) |
+| `breakdowns[].fields` | object | Объект с полями группировки и их значениями |
+| `breakdowns[].data` | object | Объект с метриками для данной группировки |
 
 #### Расчет метрик
 

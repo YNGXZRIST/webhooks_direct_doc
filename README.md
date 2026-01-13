@@ -8,8 +8,9 @@
     - [Валидация аккаунта](#1-валидация-аккаунта)
     - [Получение списка кампаний](#2-получение-списка-кампаний)
     - [Получение списка групп объявлений](#3-получение-списка-групп-объявлений)
-    - [Получение статистики кампаний](#4-получение-статистики-кампаний)
-    - [Получение статистики групп объявлений](#5-получение-статистики-групп-объявлений)
+    - [Получение стратегий кампаний](#4-получение-стратегий-кампаний)
+    - [Получение статистики кампаний](#5-получение-статистики-кампаний)
+    - [Получение статистики групп объявлений](#6-получение-статистики-групп-объявлений)
 4. [Коды ошибок](#коды-ошибок)
 5. [Примеры использования](#примеры-использования)
 
@@ -142,13 +143,13 @@ print(response.json())
     "status": "ok",
     "campaigns": [
         {
-            "Id": 16433668,
+            "Id": 111,
             "Name": "Кошелек",
             "Status": "MODERATION",
             "State": "ARCHIVED"
         },
         {
-            "Id": 16433669,
+            "Id": 222,
             "Name": "Другая кампания",
             "Status": "ACCEPTED",
             "State": "ON"
@@ -198,7 +199,7 @@ response = requests.get(
     params={
         'account': 'myaccount',
         'client': 'myclient',
-        'campaign_ids': json.dumps([16433668, 16433669])
+        'campaign_ids': json.dumps([111, 222])
     }
 )
 print(response.json())
@@ -211,16 +212,16 @@ print(response.json())
     "status": "ok",
     "groups": [
         {
-            "Id": 4567890,
+            "Id": 111,
             "Name": "Группа 1",
-            "CampaignId": 16433668,
+            "CampaignId": 111,
             "Status": "ACCEPTED",
             "ServingStatus": "ELIGIBLE"
         },
         {
-            "Id": 4567891,
+            "Id": 222,
             "Name": "Группа 2",
-            "CampaignId": 16433668,
+            "CampaignId": 111,
             "Status": "ACCEPTED",
             "ServingStatus": "ELIGIBLE"
         }
@@ -247,7 +248,127 @@ print(response.json())
 
 ---
 
-### 4. Получение статистики кампаний
+### 4. Получение стратегий кампаний
+
+Получение настроек стратегий и бюджетов для указанных кампаний.
+
+#### Endpoint
+```
+GET /webHooks/getCampaigsStrategies
+```
+
+#### Параметры
+
+| Параметр | Расположение | Обязательный | Тип | Описание |
+|----------|--------------|--------------|-----|----------|
+| `account` | query | Да | string | Логин аккаунта |
+| `client` | query | Да | string | Логин клиента |
+| `campaign_ids` | query | Да | JSON array | JSON-массив ID кампаний |
+
+#### Пример запроса
+
+```python
+import requests
+import json
+
+response = requests.get(
+    'https://your-domain.com/webHooks/getCampaigsStrategies',
+    params={
+        'account': 'myaccount',
+        'client': 'myclient',
+        'campaign_ids': json.dumps([12345678, 87654321])
+    }
+)
+print(response.json())
+```
+
+#### Пример успешного ответа
+
+```json
+{
+    "status": "ok",
+    "campaigns": [
+        {
+            "campaign_id": 111,
+            "strategy": "PAY_FOR_CONVERSION",
+            "strategy_name": "Максимум конверсий",
+            "budget_limit": 5000,
+            "budget_type": "weekly",
+            "platform": ["Поиск"],
+            "priority_goals": [
+                {
+                    "goal_name": "Отправка формы",
+                    "value": 500,
+                    "goal_id": 11111111
+                }
+            ]
+        },
+        {
+            "campaign_id": 222,
+            "strategy": "AVERAGE_CPA_MULTIPLE_GOALS",
+            "strategy_name": "Максимум конверсий",
+            "budget_limit": 3000,
+            "budget_type": "period",
+            "platform": ["РСЯ"],
+            "priority_goals": [
+                {
+                    "goal_name": "Звонок",
+                    "value": 1000,
+                    "goal_id": 22222222
+                },
+                {
+                    "goal_name": "Заявка",
+                    "value": 800,
+                    "goal_id": 33333333
+                }
+            ],
+            "period": {
+                "start": "2024.01.01",
+                "end": "2024.01.31"
+            }
+        }
+    ]
+}
+```
+
+#### Поля ответа
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `campaign_id` | integer | ID кампании |
+| `strategy` | string | Код стратегии (см. таблицу стратегий) |
+| `strategy_name` | string | Человекочитаемое название стратегии |
+| `budget_limit` | number | Лимит бюджета |
+| `budget_type` | string | Тип бюджета: `weekly` (недельный) или `period` (на период) |
+| `platform` | array | Площадки показа: `Поиск`, `РСЯ` |
+| `priority_goals` | array | Массив приоритетных целей |
+| `priority_goals[].goal_id` | integer | ID цели в Яндекс.Метрике |
+| `priority_goals[].goal_name` | string | Название цели |
+| `priority_goals[].value` | number | Ценность/стоимость цели |
+| `period` | object | Период бюджета (только для `budget_type: "period"`) |
+| `period.start` | string | Дата начала периода (YYYY.MM.DD) |
+| `period.end` | string | Дата окончания периода (YYYY.MM.DD) |
+
+#### Коды стратегий
+
+| Код | Название |
+|-----|----------|
+| `PAY_FOR_CONVERSION` | Максимум конверсий (оплата за конверсии) |
+| `AVERAGE_CPA_MULTIPLE_GOALS` | Максимум конверсий (средняя CPA) |
+| `PAY_FOR_CLICK` | Максимум кликов |
+| `AVERAGE_CPC` | Ручное управление ставками |
+| `WEEKLY_CLICK_PACKAGE` | Недельный пакет кликов |
+
+#### Возможные ошибки
+
+| Ошибка | Описание |
+|--------|----------|
+| `Параметры account и client обязательны` | Отсутствуют параметры в URL |
+| `Параметр campaign_ids обязателен` | Не указаны ID кампаний |
+
+---
+
+### 5. Получение статистики кампаний
 
 Получение детальной статистики рекламных кампаний с расчетом различных метрик.
 
@@ -374,7 +495,7 @@ response = requests.post(
     'https://your-domain.com/webHooks/getCampaignsStatistics',
     params={'account': 'myaccount', 'client': 'myclient'},
     json={
-        'campaign_ids': [16433668, 16433669],
+        'campaign_ids': [111, 222],
         'fields': ['expense','avg_pageviews', 'clicks', 'impressions', 'ctr', 'cpa'],
         'from': '2024-01-01',
         'to': '2024-01-31',
@@ -526,7 +647,7 @@ print(response.json())
     "status": "ok",
     "statistics": [
         {
-            "CampaignId": 16433668,
+            "CampaignId": 111,
             "data": {
                 "expense": 1500.50,
                 "avg_pageviews":1.3,
@@ -544,7 +665,7 @@ print(response.json())
             }
         },
         {
-            "CampaignId": 16433669,
+            "CampaignId": 222,
             "data": {
                 "expense": 850.25,
                 "avg_pageviews": 2.34,
@@ -774,7 +895,7 @@ CTR = (Клики / Показы) × 100%
 
 ---
 
-### 5. Получение статистики групп объявлений
+### 6. Получение статистики групп объявлений
 
 Получение детальной статистики групп объявлений с расчетом различных метрик (аналогично статистике кампаний).
 
@@ -830,7 +951,7 @@ response = requests.post(
     'https://your-domain.com/webHooks/getGroupsStatistics',
     params={'account': 'myaccount', 'client': 'myclient'},
     json={
-        'group_ids': [4567890, 4567891],
+        'group_ids': [111, 222],
         'fields': ['expense', 'clicks', 'impressions', 'ctr', 'cpa'],
         'from': '2024-01-01',
         'to': '2024-01-31',
@@ -847,7 +968,7 @@ print(response.json())
     "status": "ok",
     "statistics": [
         {
-            "AdGroupId": 4567890,
+            "AdGroupId": 111,
             "data": {
                 "expense": 750.25,
                 "clicks": 80,
@@ -864,7 +985,7 @@ print(response.json())
             }
         },
         {
-            "AdGroupId": 4567891,
+            "AdGroupId": 222,
             "data": {
                 "expense": 425.50,
                 "clicks": 45,
@@ -1005,7 +1126,7 @@ def get_campaign_statistics(campaign_ids):
         print(f"Ошибка: {data.get('error')}")
 
 # Использование
-get_campaign_statistics([16433668, 16433669])
+get_campaign_statistics([111, 222])
 ```
 
 ### Пример 3: Полный класс для работы с API (Python)
@@ -1211,7 +1332,7 @@ response = requests.post(
         'client': 'myclient'
     },
     json={
-        'campaign_ids': [16433668],
+        'campaign_ids': [111],
         'fields': ['expense', 'clicks', 'cpa', 'cpl', 'online_conversions', 'qualified_leads'],
         'from': '2024-01-01',
         'to': '2024-01-31',

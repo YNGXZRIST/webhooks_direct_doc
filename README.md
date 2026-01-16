@@ -11,8 +11,13 @@
     - [Получение стратегий кампаний](#4-получение-стратегий-кампаний)
     - [Получение статистики кампаний](#5-получение-статистики-кампаний)
     - [Получение статистики групп объявлений](#6-получение-статистики-групп-объявлений)
+    - [Асинхронное получение истории изменений](#7-асинхронное-получение-истории-изменений)
+    - [Получение статуса асинхронного процесса](#8-получение-статуса-асинхронного-процесса)
+    - [Получение результатов асинхронного процесса](#9-получение-результатов-асинхронного-процесса)
+    - [Остановка асинхронного процесса](#10-остановка-асинхронного-процесса)
 4. [Коды ошибок](#коды-ошибок)
 5. [Примеры использования](#примеры-использования)
+    - [Полный пример работы с асинхронными процессами](#полный-пример-работы-с-асинхронными-процессами)
 
 ---
 
@@ -1044,6 +1049,284 @@ print(response.json())
 
 ---
 
+### 7. Асинхронное получение истории изменений
+
+Запуск фонового процесса для получения истории изменений кампаний.
+
+#### Endpoint
+```
+POST /webHooks/start-yandex-direct-fetch
+```
+
+#### Параметры
+
+| Параметр | Расположение | Обязательный | Тип | Описание |
+|----------|--------------|--------------|-----|----------|
+| `account` | body | Да | string | Логин аккаунта |
+| `client` | body | Да | string | Логин клиента |
+| `type` | body | Да | string | Тип операции: `history` или `settings` |
+| `params` | body | Нет | object | Дополнительные параметры |
+
+#### Пример запроса
+
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/start-yandex-direct-fetch',
+    json={
+        'account': 'myaccount',
+        'client': 'myclient',
+        'type': 'history'
+    }
+)
+print(response.json())
+```
+
+#### Пример успешного ответа
+
+```json
+{
+    "status": "ok",
+    "success": true,
+    "processId": "YandexDirectDataFetchProcess_65a8b3f4c5d6e",
+    "message": "Процесс успешно запущен",
+    "account": "myaccount",
+    "client": "myclient",
+    "type": "history",
+    "typeLabel": "Получение истории изменений"
+}
+```
+
+#### Типы операций
+
+| Тип | Описание |
+|-----|----------|
+| `history` | Получение истории изменений кампаний |
+| `settings` | Получение настроек и стратегий кампаний |
+
+---
+
+### 8. Получение статуса асинхронного процесса
+
+Получение текущего статуса выполнения фонового процесса.
+
+#### Endpoint
+```
+GET /webHooks/get-yandex-direct-fetch-status
+```
+
+#### Параметры
+
+| Параметр | Расположение | Обязательный | Тип | Описание |
+|----------|--------------|--------------|-----|----------|
+| `processId` | query | Да | string | ID процесса |
+
+#### Пример запроса
+
+```python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/webHooks/get-yandex-direct-fetch-status',
+    params={'processId': 'YandexDirectDataFetchProcess_65a8b3f4c5d6e'}
+)
+print(response.json())
+```
+
+#### Пример ответа (процесс выполняется)
+
+```json
+{
+    "status": "ok",
+    "success": true,
+    "processId": "YandexDirectDataFetchProcess_65a8b3f4c5d6e",
+    "account": "myaccount",
+    "client": "myclient",
+    "type": "history",
+    "typeLabel": "Получение истории изменений",
+    "status": "pending",
+    "progress": 60,
+    "stage": "Обработка данных",
+    "message": "Начало получения данных из Яндекс.Директ"
+}
+```
+
+#### Пример ответа (процесс завершен)
+
+```json
+{
+    "status": "ok",
+    "success": true,
+    "processId": "YandexDirectDataFetchProcess_65a8b3f4c5d6e",
+    "account": "myaccount",
+    "client": "myclient",
+    "type": "history",
+    "typeLabel": "Получение истории изменений",
+    "status": "done",
+    "progress": 100,
+    "stage": "Завершение",
+    "message": "Процесс успешно завершен за 9.15s",
+    "resultsCount": 150,
+    "hasResults": true,
+    "dataType": "history"
+}
+```
+
+#### Статусы процесса
+
+| Статус | Описание |
+|--------|----------|
+| `new` | Новый процесс |
+| `pending` | Выполняется |
+| `done` | Завершен успешно |
+| `error` | Ошибка выполнения |
+| `stopped` | Остановлен пользователем |
+
+---
+
+### 9. Получение результатов асинхронного процесса
+
+Получение данных после завершения фонового процесса.
+
+#### Endpoint
+```
+GET /webHooks/get-yandex-direct-fetch-results
+```
+
+#### Параметры
+
+| Параметр | Расположение | Обязательный | Тип | Описание |
+|----------|--------------|--------------|-----|----------|
+| `processId` | query | Да | string | ID процесса |
+
+#### Пример запроса
+
+```python
+import requests
+
+response = requests.get(
+    'https://your-domain.com/webHooks/get-yandex-direct-fetch-results',
+    params={'processId': 'YandexDirectDataFetchProcess_65a8b3f4c5d6e'}
+)
+print(response.json())
+```
+
+#### Пример успешного ответа (история)
+
+```json
+{
+    "status": "ok",
+    "success": true,
+    "processId": "YandexDirectDataFetchProcess_65a8b3f4c5d6e",
+    "account": "myaccount",
+    "client": "myclient",
+    "type": "history",
+    "data": {
+        "data": [
+            {
+                "cid": 12345,
+                "datetime": "2026-01-15 10:30:00",
+                "change": "Изменение ставки",
+                "old_value": "10.00",
+                "new_value": "15.00"
+            }
+        ]
+    },
+    "timestamp": 1737033600,
+    "status": "done",
+    "dataCount": 150
+}
+```
+
+#### Пример успешного ответа (настройки)
+
+```json
+{
+    "status": "ok",
+    "success": true,
+    "processId": "YandexDirectDataFetchProcess_65a8b3f4c5d6e",
+    "account": "myaccount",
+    "client": "myclient",
+    "type": "settings",
+    "data": {
+        "data": [
+            {
+                "campaign_id": 12345,
+                "strategy_type": "WB_MAXIMUM_CLICKS",
+                "weekly_spend_limit": 10000,
+                "bid_ceiling": 100
+            }
+        ]
+    },
+    "timestamp": 1737033600,
+    "status": "done",
+    "dataCount": 25
+}
+```
+
+#### Возможные ошибки
+
+| Сообщение об ошибке | Описание |
+|---------------------|----------|
+| `Не указан параметр processId` | Отсутствует обязательный параметр |
+| `Процесс с ID ... не найден` | Процесс не существует или был удален |
+| `Процесс еще не завершен или завершен с ошибкой` | Результаты недоступны |
+| `Результаты процесса не найдены` | Данные не сохранены |
+
+---
+
+### 10. Остановка асинхронного процесса
+
+Принудительная остановка выполняющегося процесса.
+
+#### Endpoint
+```
+POST /webHooks/stop-yandex-direct-fetch
+```
+
+#### Параметры
+
+| Параметр | Расположение | Обязательный | Тип | Описание |
+|----------|--------------|--------------|-----|----------|
+| `processId` | body | Да | string | ID процесса |
+
+#### Пример запроса
+
+```python
+import requests
+
+response = requests.post(
+    'https://your-domain.com/webHooks/stop-yandex-direct-fetch',
+    json={'processId': 'YandexDirectDataFetchProcess_65a8b3f4c5d6e'}
+)
+print(response.json())
+```
+
+#### Пример успешного ответа
+
+```json
+{
+    "status": "ok",
+    "success": true,
+    "message": "Процесс успешно остановлен",
+    "processId": "YandexDirectDataFetchProcess_65a8b3f4c5d6e",
+    "account": "myaccount",
+    "client": "myclient",
+    "type": "history"
+}
+```
+
+#### Возможные ошибки
+
+| Сообщение об ошибке | Описание |
+|---------------------|----------|
+| `Не указан параметр processId` | Отсутствует обязательный параметр |
+| `Процесс с ID ... не найден` | Процесс не существует |
+| `Процесс не выполняется` | Процесс уже завершен или остановлен |
+
+---
+
 ## Коды ошибок
 
 ### Общие ошибки
@@ -1435,22 +1718,579 @@ else:
 
 ---
 
+### Полный пример работы с асинхронными процессами
+
+#### Класс для работы с асинхронными процессами
+
+```python
+import requests
+import time
+from typing import Optional, Dict, Any
+
+class YandexDirectAsyncClient:
+    """
+    Клиент для работы с асинхронными процессами Яндекс.Директ API
+    """
+    
+    def __init__(self, base_url: str, account: str, client: str):
+        """
+        Инициализация клиента
+        
+        Args:
+            base_url: Базовый URL API (например: https://your-domain.com/webHooks)
+            account: Логин аккаунта Яндекс.Директ
+            client: Логин клиента
+        """
+        self.base_url = base_url.rstrip('/')
+        self.account = account
+        self.client = client
+    
+    def start_process(self, process_type: str, params: Optional[Dict] = None) -> str:
+        """
+        Запуск асинхронного процесса
+        
+        Args:
+            process_type: Тип процесса ('history' или 'settings')
+            params: Дополнительные параметры
+            
+        Returns:
+            ID запущенного процесса
+            
+        Raises:
+            Exception: Если процесс не удалось запустить
+        """
+        response = requests.post(
+            f'{self.base_url}/start-yandex-direct-fetch',
+            json={
+                'account': self.account,
+                'client': self.client,
+                'type': process_type,
+                'params': params or {}
+            }
+        )
+        
+        data = response.json()
+        
+        if data.get('status') != 'ok' or not data.get('success'):
+            raise Exception(f"Ошибка запуска процесса: {data.get('error', 'Unknown error')}")
+        
+        process_id = data['processId']
+        print(f"✓ Процесс {data.get('typeLabel')} запущен: {process_id}")
+        
+        return process_id
+    
+    def get_status(self, process_id: str) -> Dict[str, Any]:
+        """
+        Получение статуса процесса
+        
+        Args:
+            process_id: ID процесса
+            
+        Returns:
+            Информация о статусе процесса
+        """
+        response = requests.get(
+            f'{self.base_url}/get-yandex-direct-fetch-status',
+            params={'processId': process_id}
+        )
+        
+        data = response.json()
+        
+        if data.get('status') != 'ok':
+            raise Exception(f"Ошибка получения статуса: {data.get('error', 'Unknown error')}")
+        
+        return data
+    
+    def get_results(self, process_id: str) -> Dict[str, Any]:
+        """
+        Получение результатов процесса
+        
+        Args:
+            process_id: ID процесса
+            
+        Returns:
+            Данные результата
+            
+        Raises:
+            Exception: Если результаты недоступны
+        """
+        response = requests.get(
+            f'{self.base_url}/get-yandex-direct-fetch-results',
+            params={'processId': process_id}
+        )
+        
+        data = response.json()
+        
+        if data.get('status') != 'ok' or not data.get('success'):
+            raise Exception(f"Ошибка получения результатов: {data.get('error', 'Unknown error')}")
+        
+        return data
+    
+    def stop_process(self, process_id: str) -> bool:
+        """
+        Остановка процесса
+        
+        Args:
+            process_id: ID процесса
+            
+        Returns:
+            True если процесс остановлен
+        """
+        response = requests.post(
+            f'{self.base_url}/stop-yandex-direct-fetch',
+            json={'processId': process_id}
+        )
+        
+        data = response.json()
+        
+        if data.get('status') != 'ok':
+            raise Exception(f"Ошибка остановки процесса: {data.get('error', 'Unknown error')}")
+        
+        return data.get('success', False)
+    
+    def wait_for_completion(
+        self, 
+        process_id: str, 
+        check_interval: int = 2, 
+        max_wait_time: Optional[int] = None,
+        verbose: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Ожидание завершения процесса с периодической проверкой статуса
+        
+        Args:
+            process_id: ID процесса
+            check_interval: Интервал проверки в секундах (по умолчанию 2)
+            max_wait_time: Максимальное время ожидания в секундах (None = без ограничения)
+            verbose: Выводить прогресс в консоль
+            
+        Returns:
+            Финальный статус процесса
+            
+        Raises:
+            TimeoutError: Если превышено максимальное время ожидания
+            Exception: Если процесс завершился с ошибкой
+        """
+        start_time = time.time()
+        last_progress = -1
+        
+        while True:
+            # Проверка таймаута
+            if max_wait_time and (time.time() - start_time) > max_wait_time:
+                raise TimeoutError(f"Превышено максимальное время ожидания ({max_wait_time}s)")
+            
+            # Получение статуса
+            status = self.get_status(process_id)
+            current_status = status.get('status')
+            progress = status.get('progress', 0)
+            stage = status.get('stage', '')
+            
+            # Вывод прогресса
+            if verbose and progress != last_progress:
+                print(f"  [{progress}%] {stage}")
+                last_progress = progress
+            
+            # Проверка завершения
+            if current_status == 'done':
+                if verbose:
+                    print(f"✓ Процесс завершен успешно")
+                return status
+            
+            elif current_status == 'error':
+                error_msg = status.get('errorMessage', status.get('message', 'Unknown error'))
+                raise Exception(f"Процесс завершился с ошибкой: {error_msg}")
+            
+            elif current_status == 'stopped':
+                raise Exception("Процесс был остановлен")
+            
+            # Ожидание перед следующей проверкой
+            time.sleep(check_interval)
+    
+    def fetch_history(self, wait: bool = True, **kwargs) -> Dict[str, Any]:
+        """
+        Получение истории изменений кампаний
+        
+        Args:
+            wait: Ожидать завершения процесса
+            **kwargs: Дополнительные параметры для wait_for_completion
+            
+        Returns:
+            Данные истории изменений
+        """
+        # Запуск процесса
+        process_id = self.start_process('history')
+        
+        if not wait:
+            return {'processId': process_id, 'status': 'pending'}
+        
+        # Ожидание завершения
+        self.wait_for_completion(process_id, **kwargs)
+        
+        # Получение результатов
+        results = self.get_results(process_id)
+        
+        print(f"✓ Получено записей истории: {results.get('dataCount', 0)}")
+        
+        return results
+    
+    def fetch_settings(self, wait: bool = True, **kwargs) -> Dict[str, Any]:
+        """
+        Получение настроек и стратегий кампаний
+        
+        Args:
+            wait: Ожидать завершения процесса
+            **kwargs: Дополнительные параметры для wait_for_completion
+            
+        Returns:
+            Данные настроек кампаний
+        """
+        # Запуск процесса
+        process_id = self.start_process('settings')
+        
+        if not wait:
+            return {'processId': process_id, 'status': 'pending'}
+        
+        # Ожидание завершения
+        self.wait_for_completion(process_id, **kwargs)
+        
+        # Получение результатов
+        results = self.get_results(process_id)
+        
+        print(f"✓ Получено настроек кампаний: {results.get('dataCount', 0)}")
+        
+        return results
+
+
+# ============================================================================
+# ПРИМЕР 1: Простое использование - получение истории
+# ============================================================================
+
+def example_fetch_history():
+    """Пример получения истории изменений"""
+    
+    # Инициализация клиента
+    client = YandexDirectAsyncClient(
+        base_url='https://your-domain.com/webHooks',
+        account='myaccount',
+        client='myclient'
+    )
+    
+    try:
+        # Получение истории (автоматически ждет завершения)
+        results = client.fetch_history()
+        
+        # Работа с данными
+        history_data = results['data']['data']
+        
+        print(f"\n=== История изменений ===")
+        print(f"Всего записей: {len(history_data)}")
+        
+        # Вывод первых 5 записей
+        for item in history_data[:5]:
+            print(f"  - [{item.get('datetime')}] Кампания {item.get('cid')}: {item.get('change')}")
+        
+        return history_data
+        
+    except Exception as e:
+        print(f"✗ Ошибка: {e}")
+        return None
+
+
+# ============================================================================
+# ПРИМЕР 2: Простое использование - получение настроек
+# ============================================================================
+
+def example_fetch_settings():
+    """Пример получения настроек стратегий"""
+    
+    # Инициализация клиента
+    client = YandexDirectAsyncClient(
+        base_url='https://your-domain.com/webHooks',
+        account='myaccount',
+        client='myclient'
+    )
+    
+    try:
+        # Получение настроек (автоматически ждет завершения)
+        results = client.fetch_settings()
+        
+        # Работа с данными
+        settings_data = results['data']['data']
+        
+        print(f"\n=== Настройки стратегий ===")
+        print(f"Всего кампаний: {len(settings_data)}")
+        
+        # Вывод настроек
+        for item in settings_data:
+            print(f"  - Кампания {item.get('campaign_id')}")
+            print(f"    Стратегия: {item.get('strategy_type')}")
+            print(f"    Недельный лимит: {item.get('weekly_spend_limit')} руб.")
+        
+        return settings_data
+        
+    except Exception as e:
+        print(f"✗ Ошибка: {e}")
+        return None
+
+
+# ============================================================================
+# ПРИМЕР 3: Продвинутое использование - параллельное получение
+# ============================================================================
+
+def example_parallel_fetch():
+    """Пример параллельного получения истории и настроек"""
+    
+    client = YandexDirectAsyncClient(
+        base_url='https://your-domain.com/webHooks',
+        account='myaccount',
+        client='myclient'
+    )
+    
+    try:
+        # Запуск процессов без ожидания
+        print("Запуск процессов...")
+        history_process = client.fetch_history(wait=False)
+        settings_process = client.fetch_settings(wait=False)
+        
+        history_id = history_process['processId']
+        settings_id = settings_process['processId']
+        
+        print(f"  История: {history_id}")
+        print(f"  Настройки: {settings_id}")
+        
+        # Ожидание завершения обоих процессов
+        print("\nОжидание завершения...")
+        
+        print("\n1. Ожидание истории:")
+        client.wait_for_completion(history_id)
+        
+        print("\n2. Ожидание настроек:")
+        client.wait_for_completion(settings_id)
+        
+        # Получение результатов
+        history_results = client.get_results(history_id)
+        settings_results = client.get_results(settings_id)
+        
+        print(f"\n✓ Получено истории: {history_results.get('dataCount')} записей")
+        print(f"✓ Получено настроек: {settings_results.get('dataCount')} кампаний")
+        
+        return {
+            'history': history_results['data']['data'],
+            'settings': settings_results['data']['data']
+        }
+        
+    except Exception as e:
+        print(f"✗ Ошибка: {e}")
+        return None
+
+
+# ============================================================================
+# ПРИМЕР 4: Получение с таймаутом и обработкой ошибок
+# ============================================================================
+
+def example_fetch_with_timeout():
+    """Пример получения данных с таймаутом"""
+    
+    client = YandexDirectAsyncClient(
+        base_url='https://your-domain.com/webHooks',
+        account='myaccount',
+        client='myclient'
+    )
+    
+    try:
+        # Запуск процесса
+        process_id = client.start_process('history')
+        
+        # Ожидание с таймаутом 60 секунд
+        client.wait_for_completion(
+            process_id,
+            check_interval=2,
+            max_wait_time=60,
+            verbose=True
+        )
+        
+        # Получение результатов
+        results = client.get_results(process_id)
+        
+        return results['data']['data']
+        
+    except TimeoutError as e:
+        print(f"✗ Таймаут: {e}")
+        # Попытка остановить процесс
+        try:
+            client.stop_process(process_id)
+            print("  Процесс остановлен")
+        except:
+            pass
+        return None
+        
+    except Exception as e:
+        print(f"✗ Ошибка: {e}")
+        return None
+
+
+# ============================================================================
+# ПРИМЕР 5: Готовая функция для получения истории и настроек
+# ============================================================================
+
+def get_yandex_direct_data(
+    base_url: str,
+    account: str,
+    client: str,
+    get_history: bool = True,
+    get_settings: bool = True,
+    timeout: int = 300
+) -> Dict[str, Any]:
+    """
+    Универсальная функция для получения данных из Яндекс.Директ
+    
+    Args:
+        base_url: Базовый URL API
+        account: Логин аккаунта
+        client: Логин клиента
+        get_history: Получить историю изменений
+        get_settings: Получить настройки стратегий
+        timeout: Максимальное время ожидания в секундах
+        
+    Returns:
+        Словарь с данными: {'history': [...], 'settings': [...]}
+        
+    Example:
+        >>> data = get_yandex_direct_data(
+        ...     'https://your-domain.com/webHooks',
+        ...     'myaccount',
+        ...     'myclient'
+        ... )
+        >>> print(f"История: {len(data['history'])} записей")
+        >>> print(f"Настройки: {len(data['settings'])} кампаний")
+    """
+    
+    client_api = YandexDirectAsyncClient(base_url, account, client)
+    result = {}
+    
+    # Запуск процессов
+    process_ids = {}
+    
+    if get_history:
+        print("→ Запуск получения истории...")
+        process_ids['history'] = client_api.start_process('history')
+    
+    if get_settings:
+        print("→ Запуск получения настроек...")
+        process_ids['settings'] = client_api.start_process('settings')
+    
+    # Ожидание завершения и получение результатов
+    for data_type, process_id in process_ids.items():
+        try:
+            print(f"\n→ Ожидание завершения: {data_type}")
+            client_api.wait_for_completion(
+                process_id,
+                check_interval=2,
+                max_wait_time=timeout,
+                verbose=True
+            )
+            
+            # Получение результатов
+            results = client_api.get_results(process_id)
+            result[data_type] = results['data']['data']
+            
+            print(f"✓ Получено {data_type}: {len(result[data_type])} записей")
+            
+        except Exception as e:
+            print(f"✗ Ошибка получения {data_type}: {e}")
+            result[data_type] = []
+    
+    return result
+
+
+# ============================================================================
+# ИСПОЛЬЗОВАНИЕ
+# ============================================================================
+
+if __name__ == '__main__':
+    # Пример 1: Простое получение истории
+    print("=" * 60)
+    print("ПРИМЕР 1: Получение истории")
+    print("=" * 60)
+    example_fetch_history()
+    
+    # Пример 2: Простое получение настроек
+    print("\n" + "=" * 60)
+    print("ПРИМЕР 2: Получение настроек")
+    print("=" * 60)
+    example_fetch_settings()
+    
+    # Пример 3: Параллельное получение
+    print("\n" + "=" * 60)
+    print("ПРИМЕР 3: Параллельное получение")
+    print("=" * 60)
+    example_parallel_fetch()
+    
+    # Пример 4: Использование готовой функции
+    print("\n" + "=" * 60)
+    print("ПРИМЕР 4: Готовая функция")
+    print("=" * 60)
+    
+    data = get_yandex_direct_data(
+        base_url='https://your-domain.com/webHooks',
+        account='myaccount',
+        client='myclient',
+        get_history=True,
+        get_settings=True,
+        timeout=300
+    )
+    
+    print(f"\n=== Итоговые данные ===")
+    print(f"История изменений: {len(data.get('history', []))} записей")
+    print(f"Настройки стратегий: {len(data.get('settings', []))} кампаний")
+```
+
+---
+
 ## Рекомендации
 
 ### Производительность
 
+**Синхронные методы:**
 - **Валидация аккаунта**: 200-500 мс
 - **Получение списка кампаний**: 500-1000 мс
 - **Получение списка групп**: 500-1500 мс (зависит от количества кампаний)
 - **Получение статистики кампаний**: 1-3 секунды (зависит от количества кампаний)
 - **Получение статистики групп**: 1-4 секунды (зависит от количества групп)
 
+**Асинхронные методы:**
+- **Запуск процесса**: 50-200 мс (мгновенный ответ с processId)
+- **Получение истории изменений**: 5-30 секунд (выполняется в фоне)
+- **Получение настроек стратегий**: 5-30 секунд (выполняется в фоне)
+- **Проверка статуса**: 50-100 мс
+- **Получение результатов**: 50-200 мс
+
 ### Лимиты
 
+**Синхронные методы:**
 - Не вызывайте валидацию чаще 1 раза в минуту для одного аккаунта
 - Рекомендуется запрашивать статистику не более 10 кампаний за раз
 - Рекомендуется запрашивать статистику не более 20 групп за раз
 - Кэшируйте результаты на стороне клиента
+
+**Асинхронные методы:**
+- Можно запускать параллельно несколько процессов для одного аккаунта
+- Рекомендуется проверять статус не чаще 1 раза в 2 секунды
+- Процессы автоматически удаляются через 24 часа после завершения
+- Храните processId для возможности получения результатов
+
+### Выбор между синхронными и асинхронными методами
+
+**Используйте синхронные методы когда:**
+- Нужен быстрый ответ (список кампаний, групп)
+- Объем данных небольшой
+- Требуется немедленный результат
+
+**Используйте асинхронные методы когда:**
+- Операция занимает много времени (история, настройки)
+- Нужно выполнить несколько операций параллельно
+- Важно не блокировать основной поток выполнения
+- Требуется получить большой объем данных
 ---
 
 ## Поддержка
@@ -1461,5 +2301,12 @@ else:
 
 ---
 
-**Версия документации:** 1.1
-**Дата последнего обновления:** 2025-12-11
+**Версия документации:** 2.0  
+**Дата последнего обновления:** 2026-01-16
+
+**Изменения в версии 2.0:**
+- Добавлены асинхронные методы для получения истории изменений
+- Добавлены асинхронные методы для получения настроек стратегий
+- Добавлен готовый Python-класс `YandexDirectAsyncClient`
+- Добавлены примеры использования асинхронных методов
+- Обновлены рекомендации по производительности

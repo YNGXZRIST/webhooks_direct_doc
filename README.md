@@ -11,7 +11,7 @@
     - [Получение стратегий кампаний](#4-получение-стратегий-кампаний)
     - [Получение статистики кампаний](#5-получение-статистики-кампаний)
     - [Получение статистики групп объявлений](#6-получение-статистики-групп-объявлений)
-    - [Асинхронное получение истории изменений](#7-асинхронное-получение-истории-изменений)
+    - [Асинхронное получение данных](#7-асинхронное-получение-данных)
     - [Получение статуса асинхронного процесса](#8-получение-статуса-асинхронного-процесса)
     - [Получение результатов асинхронного процесса](#9-получение-результатов-асинхронного-процесса)
     - [Остановка асинхронного процесса](#10-остановка-асинхронного-процесса)
@@ -1049,13 +1049,13 @@ print(response.json())
 
 ---
 
-### 7. Асинхронное получение истории изменений
+### 7. Асинхронное получение данных
 
-Запуск фонового процесса для получения истории изменений кампаний.
+Запуск фонового процесса для получения истории изменений, настроек стратегий или данных обучения кампаний.
 
 #### Endpoint
 ```
-POST /webHooks/start-yandex-direct-fetch
+POST /webHooks/startYandexDirectFetch
 ```
 
 #### Параметры
@@ -1064,7 +1064,7 @@ POST /webHooks/start-yandex-direct-fetch
 |----------|--------------|--------------|-----|----------|
 | `account` | body | Да | string | Логин аккаунта |
 | `client` | body | Да | string | Логин клиента |
-| `type` | body | Да | string | Тип операции: `history` или `settings` |
+| `type` | body | Да | string | Тип операции: `history`, `settings` или `strategy_study` |
 | `params` | body | Нет | object | Дополнительные параметры |
 
 #### Пример запроса
@@ -1073,11 +1073,11 @@ POST /webHooks/start-yandex-direct-fetch
 import requests
 
 response = requests.post(
-    'https://your-domain.com/webHooks/start-yandex-direct-fetch',
+    'https://your-domain.com/webHooks/startYandexDirectFetch',
     json={
         'account': 'myaccount',
         'client': 'myclient',
-        'type': 'history'
+        'type': 'strategy_study'
     }
 )
 print(response.json())
@@ -1093,8 +1093,8 @@ print(response.json())
     "message": "Процесс успешно запущен",
     "account": "myaccount",
     "client": "myclient",
-    "type": "history",
-    "typeLabel": "Получение истории изменений"
+    "type": "strategy_study",
+    "typeLabel": "Получение данных обучения стратегий"
 }
 ```
 
@@ -1104,6 +1104,7 @@ print(response.json())
 |-----|----------|
 | `history` | Получение истории изменений кампаний |
 | `settings` | Получение настроек и стратегий кампаний |
+| `strategy_study` | Получение данных обучения стратегий |
 
 ---
 
@@ -1113,7 +1114,7 @@ print(response.json())
 
 #### Endpoint
 ```
-GET /webHooks/get-yandex-direct-fetch-status
+GET /webHooks/getYandexDirectFetchStatus
 ```
 
 #### Параметры
@@ -1128,7 +1129,7 @@ GET /webHooks/get-yandex-direct-fetch-status
 import requests
 
 response = requests.get(
-    'https://your-domain.com/webHooks/get-yandex-direct-fetch-status',
+    'https://your-domain.com/webHooks/getYandexDirectFetchStatus',
     params={'processId': 'YandexDirectDataFetchProcess_65a8b3f4c5d6e'}
 )
 print(response.json())
@@ -1191,7 +1192,7 @@ print(response.json())
 
 #### Endpoint
 ```
-GET /webHooks/get-yandex-direct-fetch-results
+GET /webHooks/getYandexDirectFetchResults
 ```
 
 #### Параметры
@@ -1206,7 +1207,7 @@ GET /webHooks/get-yandex-direct-fetch-results
 import requests
 
 response = requests.get(
-    'https://your-domain.com/webHooks/get-yandex-direct-fetch-results',
+    'https://your-domain.com/webHooks/getYandexDirectFetchResults',
     params={'processId': 'YandexDirectDataFetchProcess_65a8b3f4c5d6e'}
 )
 print(response.json())
@@ -1265,6 +1266,62 @@ print(response.json())
 }
 ```
 
+#### Пример успешного ответа (обучение стратегий)
+
+```json
+{
+    "status": "ok",
+    "success": true,
+    "processId": "YandexDirectDataFetchProcess_65a8b3f4c5d6e",
+    "account": "myaccount",
+    "client": "myclient",
+    "type": "strategy_study",
+    "data": {
+        "data": [
+            {
+                "campaign_id": 11111111,
+                "status": null,
+                "conv_per_week": null
+            },
+            {
+                "campaign_id": 22222222,
+                "status": "Обучение завершено",
+                "conv_per_week": 15
+            },
+            {
+                "campaign_id": 33333333,
+                "status": "Обучается",
+                "conv_per_week": 8
+            },
+            {
+                "campaign_id": 44444444,
+                "status": null,
+                "conv_per_week": null
+            },
+            {
+                "campaign_id": 55555555,
+                "status": "Недостаточно данных",
+                "conv_per_week": 2
+            }
+        ],
+        "message": "Данные обучения стратегий получены"
+    },
+    "timestamp": 1737033600,
+    "status": "done",
+    "dataCount": 5
+}
+```
+
+#### Структура данных обучения стратегий
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `campaign_id` | integer | ID кампании |
+| `status` | string/null | Статус обучения стратегии. Возвращает `null`, если данные об обучении отсутствуют (например, стратегия не использует обучение) |
+| `conv_per_week` | integer/null | Количество конверсий за неделю. Возвращает `null`, если данные недоступны или стратегия не использует обучение |
+
+**Примечание:** Для кампаний, которые не используют стратегии с обучением (например, ручные стратегии или стратегии без автоматической оптимизации), оба поля `status` и `conv_per_week` будут иметь значение `null`.
+
 #### Возможные ошибки
 
 | Сообщение об ошибке | Описание |
@@ -1282,7 +1339,7 @@ print(response.json())
 
 #### Endpoint
 ```
-POST /webHooks/stop-yandex-direct-fetch
+POST /webHooks/stopYandexDirectFetch
 ```
 
 #### Параметры
@@ -1297,7 +1354,7 @@ POST /webHooks/stop-yandex-direct-fetch
 import requests
 
 response = requests.post(
-    'https://your-domain.com/webHooks/stop-yandex-direct-fetch',
+    'https://your-domain.com/webHooks/stopYandexDirectFetch',
     json={'processId': 'YandexDirectDataFetchProcess_65a8b3f4c5d6e'}
 )
 print(response.json())
@@ -1750,7 +1807,7 @@ class YandexDirectAsyncClient:
         Запуск асинхронного процесса
         
         Args:
-            process_type: Тип процесса ('history' или 'settings')
+            process_type: Тип процесса ('history', 'settings' или 'strategy_study')
             params: Дополнительные параметры
             
         Returns:
@@ -1760,7 +1817,7 @@ class YandexDirectAsyncClient:
             Exception: Если процесс не удалось запустить
         """
         response = requests.post(
-            f'{self.base_url}/start-yandex-direct-fetch',
+            f'{self.base_url}/startYandexDirectFetch',
             json={
                 'account': self.account,
                 'client': self.client,
@@ -1790,7 +1847,7 @@ class YandexDirectAsyncClient:
             Информация о статусе процесса
         """
         response = requests.get(
-            f'{self.base_url}/get-yandex-direct-fetch-status',
+            f'{self.base_url}/getYandexDirectFetchStatus',
             params={'processId': process_id}
         )
         
@@ -1815,7 +1872,7 @@ class YandexDirectAsyncClient:
             Exception: Если результаты недоступны
         """
         response = requests.get(
-            f'{self.base_url}/get-yandex-direct-fetch-results',
+            f'{self.base_url}/getYandexDirectFetchResults',
             params={'processId': process_id}
         )
         
@@ -1837,7 +1894,7 @@ class YandexDirectAsyncClient:
             True если процесс остановлен
         """
         response = requests.post(
-            f'{self.base_url}/stop-yandex-direct-fetch',
+            f'{self.base_url}/stopYandexDirectFetch',
             json={'processId': process_id}
         )
         
@@ -1959,6 +2016,33 @@ class YandexDirectAsyncClient:
         print(f"✓ Получено настроек кампаний: {results.get('dataCount', 0)}")
         
         return results
+    
+    def fetch_strategy_study(self, wait: bool = True, **kwargs) -> Dict[str, Any]:
+        """
+        Получение данных обучения стратегий
+        
+        Args:
+            wait: Ожидать завершения процесса
+            **kwargs: Дополнительные параметры для wait_for_completion
+            
+        Returns:
+            Данные обучения стратегий
+        """
+        # Запуск процесса
+        process_id = self.start_process('strategy_study')
+        
+        if not wait:
+            return {'processId': process_id, 'status': 'pending'}
+        
+        # Ожидание завершения
+        self.wait_for_completion(process_id, **kwargs)
+        
+        # Получение результатов
+        results = self.get_results(process_id)
+        
+        print(f"✓ Получено данных обучения стратегий: {results.get('dataCount', 0)}")
+        
+        return results
 
 
 # ============================================================================
@@ -2034,11 +2118,52 @@ def example_fetch_settings():
 
 
 # ============================================================================
-# ПРИМЕР 3: Продвинутое использование - параллельное получение
+# ПРИМЕР 3: Простое использование - получение данных обучения стратегий
+# ============================================================================
+
+def example_fetch_strategy_study():
+    """Пример получения данных обучения стратегий"""
+    
+    # Инициализация клиента
+    client = YandexDirectAsyncClient(
+        base_url='https://your-domain.com/webHooks',
+        account='myaccount',
+        client='myclient'
+    )
+    
+    try:
+        # Получение данных обучения (автоматически ждет завершения)
+        results = client.fetch_strategy_study()
+        
+        # Работа с данными
+        study_data = results['data']['data']
+        
+        print(f"\n=== Данные обучения стратегий ===")
+        print(f"Всего кампаний: {len(study_data)}")
+        
+        # Вывод данных обучения
+        for item in study_data:
+            print(f"  - Кампания {item.get('campaign_id')}")
+            print(f"    Статус: {item.get('status')}")
+            conv_per_week = item.get('conv_per_week')
+            if conv_per_week is not None:
+                print(f"    Конверсий за неделю: {conv_per_week}")
+            else:
+                print(f"    Конверсий за неделю: нет данных")
+        
+        return study_data
+        
+    except Exception as e:
+        print(f"✗ Ошибка: {e}")
+        return None
+
+
+# ============================================================================
+# ПРИМЕР 4: Продвинутое использование - параллельное получение
 # ============================================================================
 
 def example_parallel_fetch():
-    """Пример параллельного получения истории и настроек"""
+    """Пример параллельного получения истории, настроек и данных обучения"""
     
     client = YandexDirectAsyncClient(
         base_url='https://your-domain.com/webHooks',
@@ -2051,14 +2176,17 @@ def example_parallel_fetch():
         print("Запуск процессов...")
         history_process = client.fetch_history(wait=False)
         settings_process = client.fetch_settings(wait=False)
+        study_process = client.fetch_strategy_study(wait=False)
         
         history_id = history_process['processId']
         settings_id = settings_process['processId']
+        study_id = study_process['processId']
         
         print(f"  История: {history_id}")
         print(f"  Настройки: {settings_id}")
+        print(f"  Обучение стратегий: {study_id}")
         
-        # Ожидание завершения обоих процессов
+        # Ожидание завершения всех процессов
         print("\nОжидание завершения...")
         
         print("\n1. Ожидание истории:")
@@ -2067,16 +2195,22 @@ def example_parallel_fetch():
         print("\n2. Ожидание настроек:")
         client.wait_for_completion(settings_id)
         
+        print("\n3. Ожидание данных обучения:")
+        client.wait_for_completion(study_id)
+        
         # Получение результатов
         history_results = client.get_results(history_id)
         settings_results = client.get_results(settings_id)
+        study_results = client.get_results(study_id)
         
         print(f"\n✓ Получено истории: {history_results.get('dataCount')} записей")
         print(f"✓ Получено настроек: {settings_results.get('dataCount')} кампаний")
+        print(f"✓ Получено данных обучения: {study_results.get('dataCount')} кампаний")
         
         return {
             'history': history_results['data']['data'],
-            'settings': settings_results['data']['data']
+            'settings': settings_results['data']['data'],
+            'strategy_study': study_results['data']['data']
         }
         
     except Exception as e:

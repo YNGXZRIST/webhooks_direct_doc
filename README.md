@@ -128,6 +128,13 @@ GET /webHooks/getCampaignsList
 |----------|--------------|--------------|-----|----------|
 | `account` | query | Да | string | Логин аккаунта |
 | `client` | query | Да | string | Логин клиента |
+| `from` | query | Да | string | Начальная дата периода (формат: YYYY-MM-DD) |
+| `to` | query | Да | string | Конечная дата периода (формат: YYYY-MM-DD) |
+
+#### Описание
+
+Метод возвращает список кампаний, которые были активны в указанный период (`from` - `to`). 
+Для каждой кампании возвращается актуальная информация о статусе, состоянии и параметрах отслеживания.
 
 #### Пример запроса
 
@@ -136,7 +143,12 @@ import requests
 
 response = requests.get(
     'https://your-domain.com/webHooks/getCampaignsList',
-    params={'account': 'myaccount', 'client': 'myclient'}
+    params={
+        'account': 'myaccount', 
+        'client': 'myclient',
+        'from': '2026-01-01',
+        'to': '2026-01-20'
+    }
 )
 print(response.json())
 ```
@@ -148,16 +160,31 @@ print(response.json())
     "status": "ok",
     "campaigns": [
         {
-            "Id": 111,
-            "Name": "Кошелек",
-            "Status": "MODERATION",
-            "State": "ARCHIVED"
+            "Id": 14446702,
+            "Name": "Unitex.Ru_Офисные_Кресла_Поиск",
+            "Type": "TEXT_CAMPAIGN",
+            "Status": "ACCEPTED",
+            "State": "ON",
+            "TextCampaign": {
+                "TrackingParams": "utm_source=yandex&utm_medium=cpc&utm_campaign={campaign_name_lat}_{source_type}_{campaign_id}&utm_term={keyword}_{phrase_id}&utm_content=|{phrase_id}_{retargeting_id}|cid|{campaign_id}|aid|{ad_id}|src|{source_type}_{source}"
+            }
         },
         {
-            "Id": 222,
-            "Name": "Другая кампания",
+            "Id": 14446741,
+            "Name": "Unitex.Ru_Кабинет руководителя",
+            "Type": "TEXT_CAMPAIGN",
             "Status": "ACCEPTED",
-            "State": "ON"
+            "State": "ON",
+            "TextCampaign": {
+                "TrackingParams": null
+            }
+        },
+        {
+            "Id": "37969597",
+            "Name": "Баннер-на-поиске",
+            "Type": "UNKNOWN",
+            "Status": "UNKNOWN",
+            "State": "UNKNOWN"
         }
     ]
 }
@@ -167,10 +194,19 @@ print(response.json())
 
 | Поле | Тип | Описание |
 |------|-----|----------|
-| `Id` | integer | Уникальный идентификатор кампании |
+| `Id` | integer/string | Уникальный идентификатор кампании |
 | `Name` | string | Название рекламной кампании |
-| `Status` | string | Статус кампании (MODERATION, ACCEPTED и т.д.) |
-| `State` | string | Состояние кампании (ARCHIVED, ON, OFF, SUSPENDED) |
+| `Type` | string | Тип кампании (TEXT_CAMPAIGN, UNKNOWN и т.д.) |
+| `Status` | string | Статус кампании (ACCEPTED, MODERATION, UNKNOWN и т.д.) |
+| `State` | string | Состояние кампании (ON, OFF, ARCHIVED, SUSPENDED, UNKNOWN) |
+| `TextCampaign` | object | Параметры текстовой кампании (если применимо) |
+| `TextCampaign.TrackingParams` | string/null | UTM-метки для отслеживания (может быть null) |
+
+#### Примечания
+
+- Метод объединяет данные из отчетов (кампании, активные в период) с актуальной информацией о кампаниях
+- Если кампания была в периоде, но сейчас удалена или недоступна, она будет иметь тип/статус/состояние "UNKNOWN"
+- Параметры отслеживания (`TrackingParams`) могут быть `null`, если не настроены для кампании
 
 ---
 
@@ -1419,11 +1455,16 @@ print(response.json())
 
 ```python
 import requests
+from datetime import datetime, timedelta
 
 def get_campaigns():
     account = 'myaccount'
     client = 'myclient'
     base_url = 'https://your-domain.com/webHooks'
+    
+    # Определяем период (например, последние 30 дней)
+    to_date = datetime.now().strftime('%Y-%m-%d')
+    from_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
     # Шаг 1: Валидация аккаунта
     validate_response = requests.post(
@@ -1436,10 +1477,15 @@ def get_campaigns():
         print(f"Аккаунт невалидный: {validate_data.get('error')}")
         return None
 
-    # Шаг 2: Получение списка кампаний
+    # Шаг 2: Получение списка кампаний за период
     campaigns_response = requests.get(
         f'{base_url}/getCampaignsList',
-        params={'account': account, 'client': client}
+        params={
+            'account': account, 
+            'client': client,
+            'from': from_date,
+            'to': to_date
+        }
     )
     campaigns_data = campaigns_response.json()
 
@@ -1519,9 +1565,27 @@ class YandexDirectAPI:
         result = self._make_request('validateYandexDirectAccount', 'POST')
         return result.get('valid', False)
 
-    def get_campaigns(self) -> List[Dict]:
-        """Получение списка кампаний"""
-        result = self._make_request('getCampaignsList')
+    def get_campaigns(self, date_from: str, date_to: str) -> List[Dict]:
+        """
+        Получение списка кампаний за указанный период
+        
+        Args:
+            date_from: Начальная дата периода (формат: YYYY-MM-DD)
+            date_to: Конечная дата периода (формат: YYYY-MM-DD)
+            
+        Returns:
+            Список кампаний с их параметрами
+        """
+        params = {
+            'account': self.account,
+            'client': self.client,
+            'from': date_from,
+            'to': date_to
+        }
+        url = f"{self.base_url}/getCampaignsList"
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        result = response.json()
         return result.get('campaigns', [])
 
     def get_statistics(
@@ -1625,15 +1689,21 @@ class YandexDirectAPI:
 
 # Использование
 if __name__ == '__main__':
+    from datetime import datetime, timedelta
+    
     api = YandexDirectAPI('myaccount', 'myclient')
 
     # Проверяем доступ
     if api.validate_account():
         print("✓ Аккаунт валидный")
 
-        # Получаем список кампаний
-        campaigns = api.get_campaigns()
-        print(f"Найдено кампаний: {len(campaigns)}")
+        # Определяем период (последние 30 дней)
+        to_date = datetime.now().strftime('%Y-%m-%d')
+        from_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+
+        # Получаем список кампаний за период
+        campaigns = api.get_campaigns(from_date, to_date)
+        print(f"Найдено кампаний за период {from_date} - {to_date}: {len(campaigns)}")
 
         # Получаем ID первых 5 кампаний
         campaign_ids = [c['Id'] for c in campaigns[:5]]
@@ -1641,8 +1711,8 @@ if __name__ == '__main__':
         # Получаем статистику
         statistics = api.get_statistics(
             campaign_ids=campaign_ids,
-            date_from='2024-01-01',
-            date_to='2024-01-31',
+            date_from=from_date,
+            date_to=to_date,
             fields=['expense', 'clicks', 'impressions', 'ctr'],
             online_goals=[12345]
         )
@@ -1716,15 +1786,25 @@ if data.get('status') == 'ok':
 ```python
 import requests
 import json
+from datetime import datetime, timedelta
 
 account = 'myaccount'
 client = 'myclient'
 base_url = 'https://your-domain.com/webHooks'
 
-# Шаг 1: Получаем список кампаний
+# Определяем период (последние 30 дней)
+to_date = datetime.now().strftime('%Y-%m-%d')
+from_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+
+# Шаг 1: Получаем список кампаний за период
 campaigns_response = requests.get(
     f'{base_url}/getCampaignsList',
-    params={'account': account, 'client': client}
+    params={
+        'account': account, 
+        'client': client,
+        'from': from_date,
+        'to': to_date
+    }
 )
 campaigns = campaigns_response.json()['campaigns']
 campaign_ids = [c['Id'] for c in campaigns[:2]]

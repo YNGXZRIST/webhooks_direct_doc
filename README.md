@@ -133,7 +133,7 @@ GET /webHooks/getCampaignsList
 
 #### Описание
 
-Метод возвращает список кампаний, которые были активны в указанный период (`from` - `to`). 
+Метод возвращает список кампаний, которые были активны в указанный период (`from` - `to`).
 Для каждой кампании возвращается актуальная информация о статусе, состоянии и параметрах отслеживания.
 
 #### Пример запроса
@@ -1100,7 +1100,7 @@ POST /webHooks/startYandexDirectFetch
 |----------|--------------|--------------|-----|----------|
 | `account` | body | Да | string | Логин аккаунта |
 | `client` | body | Да | string | Логин клиента |
-| `type` | body | Да | string | Тип операции: `history`, `settings` или `strategy_study` |
+| `type` | body | Да | string | Тип операции: `history`, `settings`, `strategy_study` или `account_goals` |
 | `params` | body | Нет | object | Дополнительные параметры |
 
 #### Пример запроса
@@ -1141,6 +1141,7 @@ print(response.json())
 | `history` | Получение истории изменений кампаний |
 | `settings` | Получение настроек и стратегий кампаний |
 | `strategy_study` | Получение данных обучения стратегий |
+| `account_goals` | Получение целей и конверсий аккаунта |
 
 ---
 
@@ -1345,6 +1346,29 @@ print(response.json())
     "timestamp": 1737033600,
     "status": "done",
     "dataCount": 5
+}
+```
+
+#### Пример успешного ответа (цели аккаунта)
+
+```json
+{
+    "status": "done",
+    "success": true,
+    "processId": "YandexDirectDataFetchProcess_6973797615988",
+    "account": "account",
+    "client": "client",
+    "type": "account_goals",
+    "data": {
+        "goals": {
+            "111": "цель 1",
+            "222": "цель 2",
+            "333": "цель 3"
+        },
+        "message": "Данные целей и конверсий получены"
+    },
+    "timestamp": 1769175531,
+    "dataCount": 2
 }
 ```
 

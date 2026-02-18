@@ -48,6 +48,8 @@ https://your-domain.com/webHooks
 
 ## Формат ответа
 
+В примерах ниже используются только анонимизированные (тестовые) данные; реальные ID, тексты и хеши в документации не приводятся.
+
 ### Успешный ответ
 
 ```json
@@ -66,7 +68,21 @@ https://your-domain.com/webHooks
                 "Title": "Пример заголовка объявления",
                 "Title2": "пример второго заголовка",
                 "VideoExtension": null,
-                "AdImageHash": "xxxxxxxxxxxxxxxxxxxxxxxxx"
+                "AdImageHash": "xxxxxxxxxxxxxxxxxxxxxxxxx",
+                "AdExtensions": [
+                    {
+                        "AdExtensionId": 1000001,
+                        "Type": "CALLOUT"
+                    },
+                    {
+                        "AdExtensionId": 1000002,
+                        "Type": "CALLOUT"
+                    },
+                    {
+                        "AdExtensionId": 1000003,
+                        "Type": "CALLOUT"
+                    }
+                ]
             }
         },
         {
@@ -81,7 +97,13 @@ https://your-domain.com/webHooks
                 "Title": "example-domain.com",
                 "Title2": "пример",
                 "VideoExtension": null,
-                "AdImageHash": null
+                "AdImageHash": null,
+                "AdExtensions": [
+                    {
+                        "AdExtensionId": 1000001,
+                        "Type": "CALLOUT"
+                    }
+                ]
             }
         }
     ]
@@ -122,6 +144,22 @@ https://your-domain.com/webHooks
 | `Title2` | string | Второй заголовок объявления |
 | `VideoExtension` | string\|null | Расширение видео (если применимо) |
 | `AdImageHash` | string\|null | Хеш изображения объявления (если применимо) |
+| `AdExtensions` | array\|null | Массив расширений объявления. Для типа CALLOUT содержит уточнения (если применимо) |
+
+### Поля объекта AdExtension
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `AdExtensionId` | integer | Уникальный идентификатор расширения объявления |
+| `Type` | string | Тип расширения (CALLOUT, SITELINK, STRUCTURED_SNIPPET и т.д.) |
+
+**Типы расширений:**
+- `CALLOUT` - Уточнения (дополнительные уточнения к объявлению)
+- `SITELINK` - Быстрые ссылки
+- `STRUCTURED_SNIPPET` - Структурированные фрагменты
+- `PRICE` - Цены
+- `VIDEO` - Видео
+- `CALL` - Телефон
 
 ---
 
@@ -436,7 +474,7 @@ if __name__ == '__main__':
     )
     
     # Получение всех объявлений
-    campaign_ids = [123456789, 987654321]
+    campaign_ids = [100000001, 100000002]
     all_ads = api.get_ads_list(campaign_ids)
     print(f"Всего объявлений: {len(all_ads)}")
     

@@ -20,20 +20,20 @@ POST /webHooks/getFilteredPlatforms
 
 | Параметр | Тип | Описание |
 |----------|-----|----------|
-| `account` | string | Логин аккаунта Яндекс.Директ |
-| `filters` | array | Массив фильтров для отбора площадок |
-| `logic` | string | Логический оператор между фильтрами: `"and"` или `"or"` |
-| `period_type` | string | Тип периода: `"TODAY"`, `"YESTERDAY"`, `"CUSTOM_DATE"` |
 | `apiKey` | string | Ключ API для доступа к методу |
+| `account` | string | Логин аккаунта Яндекс.Директ |
 | `client` | string | Логин клиента (для инициализации Директа) |
+| `dateRangeType` | string | Тип периода: `"TODAY"`, `"YESTERDAY"`, `"CUSTOM_DATE"` (по умолчанию `"CUSTOM_DATE"`) |
+| `from` | string | Дата начала периода (формат `dd.mm.yyyy`), обязателен при `dateRangeType = "CUSTOM_DATE"` |
+| `to` | string | Дата окончания периода (формат `dd.mm.yyyy`), обязателен при `dateRangeType = "CUSTOM_DATE"` |
 
 ### Опциональные параметры
 
 | Параметр | Тип | Описание |
 |----------|-----|----------|
-| `goal_ids` | array | Массив ID целей для фильтрации (если не указан, используются все цели) |
-| `from` | string | Дата начала периода (формат: `"dd.mm.yyyy"`), обязателен при `period_type = "CUSTOM_DATE"` |
-| `to` | string | Дата окончания периода (формат: `"dd.mm.yyyy"`), обязателен при `period_type = "CUSTOM_DATE"` |
+| `filters` | array или string | Массив фильтров или JSON-строка. **Если не передан** — используются фильтры по умолчанию: кликов > 10, отказы > 70%, CPA выше среднего на 30% и более |
+| `logic` | string | Логический оператор между фильтрами: `"and"` или `"or"` (по умолчанию `"and"`) |
+| `goal_ids` | array или string | Массив ID целей или JSON-строка; если не указан — используются все цели |
 
 ### Структура фильтров
 
@@ -82,32 +82,61 @@ POST /webHooks/getFilteredPlatforms
 - `"=="` — равно
 - `"contains"` — содержит (только для `text_search`)
 
-## Пример запроса
+#### Фильтры по умолчанию
+
+Если параметр `filters` не передан или передан пустой/некорректный, применяется набор по умолчанию:
+
+- кликов более 10 (`click_threshold` > 10);
+- отказы более 70% (`bounce_rate` > 70);
+- CPA выше среднего по аккаунту на 30% и более (`goal_cost_deviation_percent` >= 30);
+- логика между условиями: `and`.
+
+Передача `filters` в запросе:
+- как **массив** в JSON-теле запроса (при `Content-Type: application/json`);
+- как **JSON-строка** в поле `filters` при отправке form-data.
+
+## Примеры запроса
+
+### С кастомными фильтрами (POST form или query)
+
+Параметры можно передать в теле POST (form-data) или в query string:
+
+- `apiKey`, `account`, `client` — обязательно
+- `dateRangeType` (по умолчанию `CUSTOM_DATE`), `from`, `to` — для периода
+- `filters` — JSON-строка массива фильтров, например:  
+  `[{"metric":"click_threshold","operator":">","value":"10"},{"metric":"bounce_rate","operator":">","value":"70"},{"metric":"goal_cost_deviation_percent","operator":">=","value":"30"}]`
+- `logic` — по умолчанию `and`
+- `goal_ids` — опционально, JSON-строка массива ID целей
+
+### Минимальный запрос (используются фильтры по умолчанию)
 
 ```json
 {
+    "apiKey": "your_api_key",
     "account": "example_account",
-    "filters": [
-        {
-            "metric": "click_threshold",
-            "operator": ">",
-            "value": "10"
-        },
-        {
-            "metric": "bounce_rate",
-            "operator": ">",
-            "value": "70"
-        },
-        {
-            "metric": "goal_cost_deviation_percent",
-            "operator": ">=",
-            "value": "30"
-        }
-    ],
-    "logic": "and",
-    "period_type": "CUSTOM_DATE",
+    "client": "example_client",
+    "dateRangeType": "CUSTOM_DATE",
+    "from": "01.02.2026",
+    "to": "17.02.2026"
+}
+```
+
+### Запрос с явными фильтрами
+
+```json
+{
+    "apiKey": "your_api_key",
+    "account": "example_account",
+    "client": "example_client",
+    "dateRangeType": "CUSTOM_DATE",
     "from": "01.02.2026",
     "to": "17.02.2026",
+    "filters": [
+        {"metric": "click_threshold", "operator": ">", "value": "10"},
+        {"metric": "bounce_rate", "operator": ">", "value": "70"},
+        {"metric": "goal_cost_deviation_percent", "operator": ">=", "value": "30"}
+    ],
+    "logic": "and",
     "goal_ids": []
 }
 ```
@@ -314,109 +343,86 @@ POST /webHooks/getFilteredPlatforms
 
 ---
 
-## Вызов из Python
+## Пример на Python
 
-Пример запроса к `webHooks/getFilteredPlatforms` с помощью библиотеки `requests`:
+Установка: `pip install requests`
+
+Полный пример: вызов с фильтрами по умолчанию (параметр `filters` не передаём) и с кастомными фильтрами.
 
 ```python
-import requests
-
-BASE_URL = "https://your-host.com"  # замените на ваш хост
-ENDPOINT = "/webHooks/getFilteredPlatforms"
-API_KEY = "your_api_key"  # замените на ваш apiKey
-
-url = f"{BASE_URL}{ENDPOINT}"
-
-# Параметры запроса (GET или POST form / JSON — в зависимости от реализации сервера)
-params = {
-    "apiKey": API_KEY,
-    "account": "example_account",
-    "client": "example_client",
-    "dateRangeType": "CUSTOM_DATE",
-    "from": "01.02.2026",
-    "to": "17.02.2026",
-}
-
-# Тело запроса с фильтрами (если сервер принимает JSON body)
-payload = {
-    "filters": [
-        {"metric": "click_threshold", "operator": ">", "value": "10"},
-        {"metric": "bounce_rate", "operator": ">", "value": "70"},
-        {"metric": "goal_cost_deviation_percent", "operator": ">=", "value": "30"},
-    ],
-    "logic": "and",
-    "period_type": "CUSTOM_DATE",
-    "from": "01.02.2026",
-    "to": "17.02.2026",
-    "account": "example_account",
-    "goal_ids": [],
-}
-
-# Вариант 1: POST JSON (если сервер принимает application/json)
-response = requests.post(
-    url,
-    params={"apiKey": API_KEY, "account": params["account"], "client": params["client"]},
-    json=payload,
-    timeout=120,
-)
-
-# Вариант 2: POST form-data (если сервер принимает только form)
-# Собираем все поля в один словарь для form
-form_data = {
-    "apiKey": API_KEY,
-    "account": payload["account"],
-    "client": params["client"],
-    "dateRangeType": payload["period_type"],
-    "from": payload["from"],
-    "to": payload["to"],
-    "logic": payload["logic"],
-}
-# Фильтры обычно передают как JSON-строку в одном поле или по одному полю на фильтр
 import json
-form_data["filters"] = json.dumps(payload["filters"])
-
-response = requests.post(url, data=form_data, timeout=120)
-
-response.raise_for_status()
-data = response.json()
-
-if data.get("success"):
-    platforms = data.get("platfomrs", {})  # в ответе поле "platfomrs"
-    filters_applied = data.get("filters", {})
-    total = sum(
-        len(campaigns) if isinstance(campaigns, dict) else 0
-        for campaigns in platforms.values()
-    )
-    print(f"Найдено площадок: {total}")
-    for platform_name, campaigns in platforms.items():
-        if not isinstance(campaigns, dict):
-            continue
-        for campaign_id, stats in campaigns.items():
-            print(f"  {platform_name} / campaign {campaign_id}: Clicks={stats.get('Clicks')}, Expense={stats.get('Expense')}")
-else:
-    print("Ошибка:", data.get("error", data))
-```
-
-### Минимальный пример (только обязательные параметры)
-
-```python
 import requests
 
-url = "https://your-host.com/webHooks/getFilteredPlatforms"
-resp = requests.post(
-    url,
-    data={
-        "apiKey": "your_api_key",
-        "account": "your_direct_login",
-        "client": "your_client_login",
-        "dateRangeType": "CUSTOM_DATE",
-        "from": "01.02.2026",
-        "to": "17.02.2026",
-    },
-    timeout=120,
-)
-result = resp.json()
-print(result)
-```
+BASE_URL = "https://your-host.com"
+ENDPOINT = "/webHooks/getFilteredPlatforms"
+API_KEY = "your_api_key"
+ACCOUNT = "your_direct_account"
+CLIENT = "your_client_login"
 
-Установка зависимости: `pip install requests`
+# Фильтры по умолчанию на сервере: кликов > 10, отказы > 70%, CPA выше среднего на 30%
+DEFAULT_FILTERS = [
+    {"metric": "click_threshold", "operator": ">", "value": "10"},
+    {"metric": "bounce_rate", "operator": ">", "value": "70"},
+    {"metric": "goal_cost_deviation_percent", "operator": ">=", "value": "30"},
+]
+
+
+def get_filtered_platforms(
+    account: str,
+    client: str,
+    api_key: str,
+    period_type: str = "CUSTOM_DATE",
+    date_from: str | None = None,
+    date_to: str | None = None,
+    filters: list | None = None,
+    logic: str = "and",
+    goal_ids: list | None = None,
+) -> dict:
+    """Запрос отфильтрованных площадок РСЯ. Без filters используются фильтры по умолчанию."""
+    url = f"{BASE_URL.rstrip('/')}{ENDPOINT}"
+    data = {
+        "apiKey": api_key,
+        "account": account,
+        "client": client,
+        "dateRangeType": period_type,
+        "logic": logic,
+    }
+    if period_type == "CUSTOM_DATE":
+        data["from"] = date_from or ""
+        data["to"] = date_to or ""
+    if filters is not None:
+        data["filters"] = json.dumps(filters)
+    if goal_ids is not None:
+        data["goal_ids"] = json.dumps(goal_ids)
+
+    r = requests.post(url, data=data, timeout=120)
+    r.raise_for_status()
+    return r.json()
+
+
+if __name__ == "__main__":
+    # Вариант 1: без filters — на сервере применяются фильтры по умолчанию
+    result = get_filtered_platforms(
+        account=ACCOUNT,
+        client=CLIENT,
+        api_key=API_KEY,
+        period_type="CUSTOM_DATE",
+        date_from="01.02.2026",
+        date_to="17.02.2026",
+    )
+
+    # Вариант 2: с явными фильтрами
+    # result = get_filtered_platforms(..., filters=DEFAULT_FILTERS)
+
+    if result.get("success"):
+        platforms = result.get("platfomrs", {})
+        total = sum(len(c) if isinstance(c, dict) else 0 for c in platforms.values())
+        print(f"Найдено площадок: {total}")
+        for platform_name, campaigns in platforms.items():
+            if not isinstance(campaigns, dict):
+                continue
+            for campaign_id, stats in campaigns.items():
+                print(f"  {platform_name} / {campaign_id}: Clicks={stats.get('Clicks')}, Expense={stats.get('Expense')}")
+    else:
+        print("Ошибка:", result.get("error", result))
+```

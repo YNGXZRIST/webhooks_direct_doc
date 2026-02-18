@@ -72,15 +72,18 @@ https://your-domain.com/webHooks
                 "AdExtensions": [
                     {
                         "AdExtensionId": 1000001,
-                        "Type": "CALLOUT"
+                        "Type": "CALLOUT",
+                        "CalloutText": "Пример уточнения 1"
                     },
                     {
                         "AdExtensionId": 1000002,
-                        "Type": "CALLOUT"
+                        "Type": "CALLOUT",
+                        "CalloutText": "Пример уточнения 2"
                     },
                     {
                         "AdExtensionId": 1000003,
-                        "Type": "CALLOUT"
+                        "Type": "CALLOUT",
+                        "CalloutText": "Пример уточнения 3"
                     }
                 ]
             }
@@ -101,7 +104,8 @@ https://your-domain.com/webHooks
                 "AdExtensions": [
                     {
                         "AdExtensionId": 1000001,
-                        "Type": "CALLOUT"
+                        "Type": "CALLOUT",
+                        "CalloutText": "Пример уточнения"
                     }
                 ]
             }
@@ -152,6 +156,9 @@ https://your-domain.com/webHooks
 |------|-----|----------|
 | `AdExtensionId` | integer | Уникальный идентификатор расширения объявления |
 | `Type` | string | Тип расширения (CALLOUT, SITELINK, STRUCTURED_SNIPPET и т.д.) |
+| `CalloutText` | string\|null | Текст уточнения (присутствует только для типа CALLOUT). Получается отдельным запросом к API расширений объявлений |
+
+**Примечание:** Для расширений типа `CALLOUT` API автоматически получает тексты уточнений через отдельный запрос к сервису расширений объявлений Яндекс.Директ. Если запрос не удался или расширение не найдено, поле `CalloutText` может отсутствовать.
 
 **Типы расширений:**
 - `CALLOUT` - Уточнения (дополнительные уточнения к объявлению)
